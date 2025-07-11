@@ -93,7 +93,6 @@ if __name__ == '__main__':
     parser.add_argument('--no_use_angles', dest='use_angles', action='store_false', help='Do not use angle features')
     parser.add_argument('--use_distances', action='store_true', default=True, help='Use distance features in the GNN')
     parser.add_argument('--no_use_distances', dest='use_distances', action='store_false', help='Do not use distance features')
-    parser.add_argument('--epochs_train_best_model', type=int, default=10, help='Epochs to train the best model')
     parser.add_argument('--n_trials_Bayesian_optimization', type=int, default=10, help='Number of Optuna trials')
     parser.add_argument('--total_epochs_trial', type=int, default=10, help='Epochs per Optuna trial')
     parser.add_argument('--lr_min', type=float, default=1e-3, help='Minimum learning rate')
@@ -108,12 +107,12 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size for training')
     parser.add_argument('--seed', type=int, default=42, help='Random seed for reproducibility')
     parser.add_argument('--file_list_data', type=str, default='data_list.txt', help='File containing the list of data files to be read')
+    parser.add_argument('--split_train', type=float, default=0.8, help="Fraction of the data that will be used to train model. The rest will be used in evaluation and development (50%, 50%)")
     
     args = parser.parse_args()
     
     use_angles = args.use_angles
     use_distances = args.use_distances
-    epochs_train_best_model = args.epochs_train_best_model
     n_trials_Bayesian_optimization = args.n_trials_Bayesian_optimization
     total_epochs_trial = args.total_epochs_trial
     lr_min = args.lr_min
@@ -128,6 +127,7 @@ if __name__ == '__main__':
     batch_size = args.batch_size
     seed = args.seed
     file_list_data = args.file_list_data
+    split_train = args.split_train
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # print if using GPU or CPU
@@ -137,7 +137,7 @@ if __name__ == '__main__':
     dataset, input_dim = load_dataset(file_list_data)
     
     # split dataset
-    train_loader, dev_loader, val_loader = split_data_set(dataset, batch_size, split_ratio=0.8)
+    train_loader, dev_loader, val_loader = split_data_set(dataset, batch_size, split_ratio=split_train)
 
     # Bayesian optimization
     sampler = optuna.samplers.TPESampler(seed=seed)

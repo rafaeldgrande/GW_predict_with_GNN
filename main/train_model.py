@@ -107,6 +107,8 @@ if __name__ == '__main__':
     parser.add_argument('--patience_learning_rate', type=int, default=10, help="Patience for learning rate scheduler")
     parser.add_argument('--patience_training', type=int, default=20, help='Patience for early stopping')
     parser.add_argument('--output_weights_file', type=str, default='out_weights.pth', help='Output weights file')
+    parser.add_argument('--split_train', type=float, default=0.8, help="Fraction of the data that will be used to train model. The rest will be used in evaluation and development (50%, 50%)")
+    
     args = parser.parse_args()
 
     epochs_train_model = args.epochs_train_model
@@ -120,6 +122,7 @@ if __name__ == '__main__':
     patience_learning_rate = args.patience_learning_rate
     patience_training = args.patience_training
     output_weights_file = args.weights_file
+    split_train = args.split_train
     
     set_seed(seed)
     
@@ -132,7 +135,7 @@ if __name__ == '__main__':
     dataset, input_dim = load_dataset(file_list_data)
     
     # Split dataset
-    train_loader, dev_loader, val_loader = split_data_set(dataset, batch_size, split_ratio=0.8)
+    train_loader, dev_loader, val_loader = split_data_set(dataset, batch_size, split_ratio=split_train)
     
     # Load model config and initialize
     params_NN = load_params_NN(model_name)
