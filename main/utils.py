@@ -7,7 +7,41 @@ from ase.neighborlist import neighbor_list
 import random
 import copy
 from torch_geometric.data import Data
+import matplotlib.pyplot as plt
+import json
 
+
+def load_params_NN(json_file):
+    """
+    Loads hyperparameters from a JSON file.
+
+    Args:
+        json_file (str): Path to the JSON file containing the hyperparameters.
+
+    Returns:
+        dict: A dictionary containing the hyperparameters.
+    """
+    with open(json_file, 'r') as f:
+        return json.load(f)
+
+def load_dataset(file_list_data):
+    """
+    Loads a dataset from an HDF5 file and returns it as a list of Data objects.
+
+    Args:
+        file_list_data (str): Path to a file containing the path to the HDF5 file to load.
+
+    Returns:
+        tuple: A tuple containing a list of Data objects and the input dimensionality of the dataset.
+    """
+    dataset = []
+    with open(file_list_data, 'r') as f:
+        data_file = f.readline().strip()
+        print(f'Loading data from file {data_file}')
+        dataset.extend(load_gnn_samples_from_h5(data_file))
+    print('Data loaded.')
+    input_dim = dataset[0].x.shape[1]  # number of orbital projections per atom
+    return dataset, input_dim
 
 def set_seed(seed):
 
@@ -276,3 +310,69 @@ def train_model_with_patience(model, train_loader, val_loader, optimizer, loss_f
     print(f'Finished this training. Best val MAE: {best_val_mae:.4f} at epoch {best_epoch}')
 
     return train_loss_list, train_mae_list, val_loss_list, val_mae_list, model, best_val_mae, best_epoch
+
+
+def plot_mae_loss(train_loss, train_mae, val_loss, val_mae):
+
+    """
+    Plot training and validation loss and MAE curves.
+
+    Parameters
+    ----------
+    train_loss : list
+        List of training losses at each epoch.
+    train_mae : list
+        List of training mean absolute errors at each epoch.
+    val_loss : list
+        List of validation losses at each epoch.
+    val_mae : list
+        List of validation mean absolute errors at each epoch.
+    """
+    f, axs = plt.subplots(figsize=(14, 6), ncols=2)
+
+    plt.sca(axs[0])
+    plt.plot(train_loss, label='Train', color='blue')
+    plt.plot(val_loss, label='Validation', color='orange')
+    plt.yscale('log')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss (eV)')
+    plt.legend()
+    plt.grid(True)
+
+
+    plt.sca(axs[1])
+    plt.plot(train_mae, label='Train', color='blue')
+    plt.plot(val_mae, label='Validation', color='orange')
+    plt.yscale('log')
+    plt.xlabel('Epoch')
+    plt.ylabel('MAE (eV)')
+    plt.legend()
+    plt.grid(True)
+    # y axis in log scale
+    
+    plt.tight_layout()
+    plt.savefig('loss_mae.png')
+    plt.close()
+
+def plot_prediction_vs_true_val(y_pred, y_true):
+    """
+    Plot a scatter plot of the predicted QP corrections vs the true QP corrections.
+    
+    Parameters
+    ----------
+    y_pred : array-like
+        Predicted QP corrections.
+    y_true : array-like
+        True QP corrections.
+    """
+    plt.figure(figsize=(6, 6))
+    plt.scatter(y_true, y_pred, alpha=0.6, edgecolors='k', linewidths=0.5)
+    plt.plot([min(y_true), max(y_true)], [min(y_true), max(y_true)], 'r--', label='Ideal')
+    plt.xlabel('True QP Correction (eV)')
+    plt.ylabel('Predicted QP Correction (eV)')
+    plt.title('Predicted vs True QP Corrections')
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig('pred_vs_true_qp.png')
+    plt.close()

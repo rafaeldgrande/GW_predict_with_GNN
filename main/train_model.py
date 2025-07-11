@@ -14,52 +14,6 @@ import json
 import argparse
 
 
-def load_params_NN(json_file):
-    with open(json_file, 'r') as f:
-        return json.load(f)
-
-def plot_mae_loss(train_loss, train_mae, val_loss, val_mae):
-
-    f, axs = plt.subplots(figsize=(14, 6), ncols=2)
-
-    plt.sca(axs[0])
-    plt.plot(train_loss, label='Train', color='blue')
-    plt.plot(val_loss, label='Validation', color='orange')
-    plt.yscale('log')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss (eV)')
-    plt.legend()
-    plt.grid(True)
-
-
-    plt.sca(axs[1])
-    plt.plot(train_mae, label='Train', color='blue')
-    plt.plot(val_mae, label='Validation', color='orange')
-    plt.yscale('log')
-    plt.xlabel('Epoch')
-    plt.ylabel('MAE (eV)')
-    plt.legend()
-    plt.grid(True)
-    # y axis in log scale
-    
-    plt.tight_layout()
-    plt.savefig('loss_mae.png')
-    plt.close()
-
-def plot_prediction_vs_true_val(y_pred, y_true):
-    plt.figure(figsize=(6, 6))
-    plt.scatter(y_true, y_pred, alpha=0.6, edgecolors='k', linewidths=0.5)
-    plt.plot([min(y_true), max(y_true)], [min(y_true), max(y_true)], 'r--', label='Ideal')
-    plt.xlabel('True QP Correction (eV)')
-    plt.ylabel('Predicted QP Correction (eV)')
-    plt.title('Predicted vs True QP Corrections')
-    plt.grid(True)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig('pred_vs_true_qp.png')
-    plt.close()
-    
-
 def train_model_with_patience(model, train_loader, val_loader, optimizer, loss_fn, device, patience_learning_rate, epochs=10, patience=20):
     print('Starting training...')
     train_loss_list = []
@@ -174,14 +128,8 @@ if __name__ == '__main__':
     print(f"Using device: {device}")
 
     # Load dataset
-    dataset = []
-    with open(file_list_data, 'r') as f:
-        data_file = f.readline().strip()
-        print(f'Loading data from file {data_file}')
-        dataset.extend(load_gnn_samples_from_h5(data_file))
-    print('Data loaded.')
     
-    input_dim = dataset[0].x.shape[1]  # number of orbital projections per atom
+    dataset, input_dim = load_dataset(file_list_data)
     
     # Shuffle the dataset
     np.random.shuffle(dataset)
@@ -200,7 +148,7 @@ if __name__ == '__main__':
     val_loader = DataLoader(val_dataset, batch_size=batch_size)
     
     # Load model config and initialize
-    params_NN = load_params_NN(args.model)
+    params_NN = load_params_NN(model_name)
     model = create_gnn_model_from_params(params_NN, input_dim)    
     
     # Create optimizer and loss function
