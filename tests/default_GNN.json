@@ -1,0 +1,7 @@
+
+{
+  "n_layers": 3,
+  "n_units": 64,
+  "dropout_rate": 0.1,
+  "learning_rate": 0.001
+}
