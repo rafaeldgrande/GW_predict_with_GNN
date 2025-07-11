@@ -149,9 +149,10 @@ if __name__ == '__main__':
     parser.add_argument('--file_list_data', type=str, default='data_list.txt', help='File containing the list of data files to be read')
     parser.add_argument('--plot_data', type=bool, default=True, help="Plot mae, loss vs epochs and scatter plot y_pred vs y_true")
     parser.add_argument('--use_pre_trained_weights', type=bool, default=False, help="Use pre-trained weights from file weigths.pt")
-    parser.add_argument('--weights_file', type=str, default='weights.pt', help="Weights file to be loaded")
+    parser.add_argument('--weights_file', type=str, default='weights.pth', help="Weights file to be loaded")
     parser.add_argument('--patience_learning_rate', type=int, default=10, help="Patience for learning rate scheduler")
     parser.add_argument('--patience_training', type=int, default=20, help='Patience for early stopping')
+    parser.add_argument('--output_weights_file', type=str, default='out_weights.pth', help='Output weights file')
     args = parser.parse_args()
 
     epochs_train_model = args.epochs_train_model
@@ -164,6 +165,7 @@ if __name__ == '__main__':
     weights_file = args.weights_file
     patience_learning_rate = args.patience_learning_rate
     patience_training = args.patience_training
+    output_weights_file = args.weights_file
     
     set_seed(seed)
     
@@ -219,8 +221,8 @@ if __name__ == '__main__':
                                                                                                           epochs=epochs_train_model,
                                                                                                           patience=patience_training)
     
-    torch.save(trained_model.state_dict(), "trained_model.pth")
-    
+    torch.save(trained_model.state_dict(), output_weights_file)
+    print(f"Weights saved to {output_weights_file}")
     
     # ---- Evaluate on val_loader ----
     y_pred, y_true = evaluate_model(trained_model, val_loader, device)

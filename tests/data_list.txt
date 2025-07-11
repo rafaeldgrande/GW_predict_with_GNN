@@ -1,1 +1,1 @@
-data_example/data_for_GNN.h5
+data_for_tests.h5
