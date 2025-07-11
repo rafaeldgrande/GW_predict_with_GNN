@@ -131,21 +131,8 @@ if __name__ == '__main__':
     
     dataset, input_dim = load_dataset(file_list_data)
     
-    # Shuffle the dataset
-    np.random.shuffle(dataset)
-    
-    # Compute split indices
-    n_total = len(dataset)
-    n_train = int(0.8 * n_total)
-    n_val = n_total - n_train  # ensures full coverage
-    
     # Split dataset
-    train_dataset = dataset[:n_train]
-    val_dataset = dataset[n_train:]
-    
-    # Create DataLoaders
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size)
+    train_loader, dev_loader, val_loader = split_data_set(dataset, batch_size, split_ratio=0.8)
     
     # Load model config and initialize
     params_NN = load_params_NN(model_name)

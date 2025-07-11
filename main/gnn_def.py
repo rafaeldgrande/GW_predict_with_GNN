@@ -220,39 +220,60 @@ class GNNOptunaModel(nn.Module):
         x = torch.cat([x, data.edft.view(-1, 1)], dim=1)
         return self.mlp(x).squeeze(-1)
 
-def create_gnn_model_for_hyperparameter_search(trial, input_dim, params, use_distances=True, use_angles=True):
-
+def create_gnn_model_for_hyperparameter_search(
+    trial,
+    input_dim: int,
+    params: dict,
+    use_distances: bool = True,
+    use_angles: bool = True
+) -> AngleGNN:
     """
-    Create a GNN model based on Optuna trial parameters.
+    Build an AngleGNN inside an Optuna objective, pulling search‑space bounds from `params`.
 
     Args:
-        trial: Optuna trial object
-        input_dim: Input dimensionality of node features
-        params: Dictionary of hyperparameter search space
-        use_distances: If True, use distance-based edge features. Defaults to True.
-        use_angles: If True, use angle-based features. Defaults to True.
+        trial:           an Optuna Trial
+        input_dim:       dimensionality of each node feature vector
+        params:          dict containing the hyperparameter bounds:
+                         {
+                             "n_layers_min": int,
+                             "n_layers_max": int,
+                             "hidden_dims_min": int,
+                             "hidden_dims_max": int,
+                             "hidden_dims_step": int,
+                             "dropout_rate_min": float,
+                             "dropout_rate_max": float,
+                         }
+        use_distances:   whether to include distance features
+        use_angles:      whether to include angle features
 
     Returns:
-        AngleGNN: GNN model with specified hyperparameters
+        An un‑trained AngleGNN instance with hyperparameters suggested by Optuna.
     """
+    # unpack search‑space bounds
+    nl_min = params["n_layers_min"]
+    nl_max = params["n_layers_max"]
+    h_min  = params["hidden_dims_min"]
+    h_max  = params["hidden_dims_max"]
+    h_step = params["hidden_dims_step"]
+    dr_min = params["dropout_rate_min"]
+    dr_max = params["dropout_rate_max"]
 
-    n_layers_min = params["n_layers_min"]
-    n_layers_max = params["n_layers_max"]
-    hidden_dims_min = params["hidden_dims_min"]
-    hidden_dims_max = params["hidden_dims_max"]
-    hidden_dims_step = params["hidden_dims_step"]
-    dropout_rate_min = params["dropout_rate_min"]
-    dropout_rate_max = params["dropout_rate_max"]
-    
-    n_layers = trial.suggest_int("n_layers", n_layers_min, n_layers_max)
-    hidden_dim = trial.suggest_int("n_units", hidden_dims_min, hidden_dims_max, step=hidden_dims_step)
-    hidden_dims = [hidden_dim] * n_layers  # All layers have the same size
-    activation = "relu"
-    dropout_rate = trial.suggest_float("dropout_rate", dropout_rate_min, dropout_rate_max)
+    # sample with Optuna
+    n_layers     = trial.suggest_int("n_layers", nl_min, nl_max)
+    hidden_units = trial.suggest_int("n_units", h_min, h_max, step=h_step)
+    dropout_rate = trial.suggest_float("dropout_rate", dr_min, dr_max)
 
-    return AngleGNN(input_dim, hidden_dims, activation, dropout_rate,
-                    use_distances=use_distances, use_angles=use_angles)
-    
+    # all hidden layers share the same width
+    hidden_dims = [hidden_units] * n_layers
+
+    return AngleGNN(
+        input_dim=input_dim,
+        hidden_dims=hidden_dims,
+        activation="relu",
+        dropout_rate=dropout_rate,
+        use_distances=use_distances,
+        use_angles=use_angles,
+    ) 
 def create_gnn_model_from_params(params, input_dim):
     n_layers = params["n_layers"]
     hidden_dim = params["n_units"]

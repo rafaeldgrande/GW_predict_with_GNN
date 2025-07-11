@@ -7,9 +7,39 @@ from ase.neighborlist import neighbor_list
 import random
 import copy
 from torch_geometric.data import Data
+from torch_geometric.loader import DataLoader
 import matplotlib.pyplot as plt
 import json
 
+
+def split_data_set(dataset, batch_size, split_ratio=0.8):
+    
+    # Shuffle the dataset
+    np.random.shuffle(dataset)
+    
+    # Compute split indices
+    print('Splitting dataset into train, dev and val sets')
+    n_total = len(dataset)
+    n_train = int(split_ratio * n_total)
+    dev_ratio = (1 - split_ratio) / 2
+    n_dev = int(dev_ratio * n_total)
+    n_val = n_total - n_train - n_dev  # ensures full coverage
+
+    # Split dataset
+    train_dataset = dataset[:n_train]
+    dev_dataset = dataset[n_train:n_train + n_dev]
+    val_dataset = dataset[n_train + n_dev:]
+    
+    print(f'Train set size: {len(train_dataset)}')
+    print(f'Dev set size: {len(dev_dataset)}')
+    print(f'Val set size: {len(val_dataset)}')
+
+    # Create DataLoaders
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    dev_loader = DataLoader(dev_dataset, batch_size=batch_size)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size)
+    
+    return train_loader, dev_loader, val_loader
 
 def load_params_NN(json_file):
     """
