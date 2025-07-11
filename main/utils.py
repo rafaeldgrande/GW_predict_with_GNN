@@ -65,11 +65,18 @@ def load_dataset(file_list_data):
         tuple: A tuple containing a list of Data objects and the input dimensionality of the dataset.
     """
     dataset = []
-    with open(file_list_data, 'r') as f:
-        data_file = f.readline().strip()
+    arq = open(file_list_data)
+    for line in arq:
+        data_file = line.split()[0]
         print(f'Loading data from file {data_file}')
         dataset.extend(load_gnn_samples_from_h5(data_file))
-    print('Data loaded.')
+
+    # with open(file_list_data, 'r') as f:
+    #     data_file = f.readline().strip()
+    #     print(f'Loading data from file {data_file}')
+    #     dataset.extend(load_gnn_samples_from_h5(data_file))
+
+    print('All data loaded.')
     input_dim = dataset[0].x.shape[1]  # number of orbital projections per atom
     return dataset, input_dim
 
