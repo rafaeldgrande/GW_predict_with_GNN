@@ -1,0 +1,119 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.9.16, pytest-8.4.1, pluggy-1.6.0
+rootdir: /Users/rdelgrande/work/Codes/GW_predict_with_GNN/tests
+plugins: anyio-3.6.2
+collected 2 items
+
+test_train_model.py 
+2025-07-14 21:46:53,772 - __main__ - INFO - Logging initialized. Log file: logs/train_model_20250714_214653.log
+usage: train_model.py [-h] [--epochs_train_model EPOCHS_TRAIN_MODEL] [--model MODEL] [--seed SEED]
+                      [--batch_size BATCH_SIZE] [--file_list_data FILE_LIST_DATA] [--plot_data]
+                      [--use_pre_trained_weights] [--weights_file WEIGHTS_FILE]
+                      [--patience_learning_rate PATIENCE_LEARNING_RATE] [--patience_training PATIENCE_TRAINING]
+                      [--output_weights_file OUTPUT_WEIGHTS_FILE] [--split_train SPLIT_TRAIN]
+                      [--log_level {DEBUG,INFO,WARNING,ERROR}]
+train_model.py: error: unrecognized arguments: False
+
+F
+2025-07-14 21:47:02,309 - __main__ - INFO - Logging initialized. Log file: logs/train_model_20250714_214702.log
+usage: train_model.py [-h] [--epochs_train_model EPOCHS_TRAIN_MODEL] [--model MODEL] [--seed SEED]
+                      [--batch_size BATCH_SIZE] [--file_list_data FILE_LIST_DATA] [--plot_data]
+                      [--use_pre_trained_weights] [--weights_file WEIGHTS_FILE]
+                      [--patience_learning_rate PATIENCE_LEARNING_RATE] [--patience_training PATIENCE_TRAINING]
+                      [--output_weights_file OUTPUT_WEIGHTS_FILE] [--split_train SPLIT_TRAIN]
+                      [--log_level {DEBUG,INFO,WARNING,ERROR}]
+train_model.py: error: unrecognized arguments: False True
+
+F
+
+=================================== FAILURES ===================================
+____________________________ test_training_pipeline ____________________________
+
+    def test_training_pipeline():
+        # 1. Create dummy config file
+        config_path = "default_GNN.json"
+        config = {
+            "n_layers": 2,
+            "n_units": 32,
+            "dropout_rate": 0.1,
+            "learning_rate": 0.01
+        }
+        with open(config_path, 'w') as f:
+            json.dump(config, f)
+    
+        data_list_path = "data_list.txt"
+    
+        # 3. Run the training script via subprocess
+        result = subprocess.run([
+            "python", "../main/train_model.py",
+            "--epochs_train_model", "2",
+            "--model", "default_GNN.json",
+            "--file_list_data", "data_list.txt",
+            "--batch_size", "4",
+            "--plot_data", "False",
+        ], capture_output=True, text=True)
+    
+        print(result.stdout)
+        print(result.stderr)
+    
+        # 4. Check outputs
+>       assert result.returncode == 0, "Script crashed"
+E       AssertionError: Script crashed
+E       assert 2 == 0
+E        +  where 2 = CompletedProcess(args=['python', '../main/train_model.py', '--epochs_train_model', '2', '--model', 'default_GNN.json',...                     [--log_level {DEBUG,INFO,WARNING,ERROR}]\ntrain_model.py: error: unrecognized arguments: False\n').returncode
+
+test_train_model.py:35: AssertionError
+____________________ test_training_with_pretrained_weights _____________________
+
+    def test_training_with_pretrained_weights():
+        result = subprocess.run([
+            "python", "../main/train_model.py",
+            "--epochs_train_model", "2",
+            "--model", "default_GNN.json",
+            "--file_list_data", "data_list.txt",
+            "--batch_size", "4",
+            "--plot_data", "False",
+            "--use_pre_trained_weights", "True",
+            "--weights_file", "weights.pth"
+        ], capture_output=True, text=True)
+    
+        print(result.stdout)
+        print(result.stderr)
+>       assert result.returncode == 0
+E       AssertionError: assert 2 == 0
+E        +  where 2 = CompletedProcess(args=['python', '../main/train_model.py', '--epochs_train_model', '2', '--model', 'default_GNN.json',...                [--log_level {DEBUG,INFO,WARNING,ERROR}]\ntrain_model.py: error: unrecognized arguments: False True\n').returncode
+
+test_train_model.py:53: AssertionError
+=========================== short test summary info ============================
+FAILED test_train_model.py::test_training_pipeline - AssertionError: Script c...
+FAILED test_train_model.py::test_training_with_pretrained_weights - Assertion...
+============================== 2 failed in 14.39s ==============================
+============================= test session starts ==============================
+platform darwin -- Python 3.9.16, pytest-8.4.1, pluggy-1.6.0
+rootdir: /Users/rdelgrande/work/Codes/GW_predict_with_GNN/tests
+plugins: anyio-3.6.2
+collected 1 item
+
+test_predictions.py 
+2025-07-14 21:47:09,580 - __main__ - INFO - Logging initialized. Log file: logs/prediction_20250714_214709.log
+usage: predict.py [-h] [--seed SEED] [--file_list_data FILE_LIST_DATA] [--batch_size BATCH_SIZE] [--model MODEL]
+                  [--weights_file WEIGHTS_FILE] [--predictions_file PREDICTIONS_FILE] [--plot_data]
+                  [--log_level {DEBUG,INFO,WARNING,ERROR}]
+predict.py: error: unrecognized arguments: False
+
+.
+
+============================== 1 passed in 5.84s ===============================
+============================= test session starts ==============================
+platform darwin -- Python 3.9.16, pytest-8.4.1, pluggy-1.6.0
+rootdir: /Users/rdelgrande/work/Codes/GW_predict_with_GNN/tests
+plugins: anyio-3.6.2
+collected 1 item
+
+test_optimize_hyperparameters.py Running Optuna hyperparameter search test...
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! KeyboardInterrupt !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+/Users/rdelgrande/opt/miniconda3/lib/python3.9/selectors.py:416: KeyboardInterrupt
+(to show a full traceback on KeyboardInterrupt use --full-trace)
+============================ no tests ran in 5.23s =============================

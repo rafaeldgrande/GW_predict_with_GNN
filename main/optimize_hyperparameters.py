@@ -7,12 +7,41 @@ from gnn_def import *
 from utils import *
 import argparse
 import logging
+import os
 
 import optuna
 import optuna.visualization as vis
 from torch_geometric.loader import DataLoader
 import time
 from datetime import datetime, timedelta
+
+# Configure logging
+def setup_logging(log_level=logging.INFO):
+    """Setup logging configuration for the optimization process."""
+    # Create logs directory if it doesn't exist
+    os.makedirs('logs', exist_ok=True)
+    
+    # Create timestamp for unique log file
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    log_filename = f'logs/optuna_optimization_{timestamp}.log'
+    
+    # Configure logging format
+    logging.basicConfig(
+        level=log_level,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_filename),
+            logging.StreamHandler()  # Also log to console
+        ]
+    )
+    
+    # Get logger for this module
+    logger = logging.getLogger(__name__)
+    logger.info(f"Logging initialized. Log file: {log_filename}")
+    return logger, log_filename
+
+# Initialize logging
+logger, log_file = setup_logging()
 
 # Configure Optuna logging level (optional)
 optuna.logging.set_verbosity(optuna.logging.INFO)  # Can be DEBUG, INFO, WARNING, ERROR
@@ -48,6 +77,11 @@ def custom_callback(study, trial):
         eta_str = "Unknown"
         remaining_time_str = "Unknown"
     
+    # Log trial information
+    logger.info(f"Trial {trial.number + 1}/{total_trials} completed - MAE: {current_value:.6f}, "
+                f"Duration: {trial_duration:.1f}s, Best MAE: {best_value:.6f}")
+    logger.info(f"Trial {trial.number + 1} parameters: {trial.params}")
+    
     # Custom formatted output
     print(f"Trial {trial.number + 1} of {total_trials} | MAE: {current_value:.6f} | "
           f"Best MAE: {best_value:.6f} (Trial {best_trial_number + 1})")
@@ -64,6 +98,9 @@ def custom_callback(study, trial):
         improvement = best_value < study.trials[trial.number-1].value if trial.number > 0 else False
         status = "NEW BEST!" if improvement and trial.number == best_trial_number else " Continue"
         print(f"    {status}")
+        
+        if improvement and trial.number == best_trial_number:
+            logger.info(f"New best trial found! Trial {trial.number + 1} - MAE: {best_value:.6f}")
     
     print("-" * 80)
 
@@ -82,87 +119,107 @@ def objective(trial):
     Returns:
         float: The mean absolute error (MAE) of the model on the validation set.
     """
-
-    # Option 1: Use fixed hidden dimensions per layer (original behavior)
-    # model = create_gnn_model_for_hyperparameter_search(
-    #     trial,
-    #     input_dim=input_dim,
-    #     params={
-    #         "n_layers_min": n_layers_min,
-    #         "n_layers_max": n_layers_max,
-    #         "hidden_dims_min": hidden_dims_min,
-    #         "hidden_dims_max": hidden_dims_max,
-    #         "hidden_dims_step": hidden_dims_step,
-    #         "dropout_rate_min": dropout_rate_min,
-    #         "dropout_rate_max": dropout_rate_max,
-    #         "mlp_hidden_min": mlp_hidden_min,
-    #         "mlp_hidden_max": mlp_hidden_max,
-    #     },
-    #     use_distances=use_distances,
-    #     use_angles=use_angles,
-    # ).to(device)
     
-    # Option 2: Use variable hidden dimensions per layer (NEW)
-    model = create_gnn_model_for_hyperparameter_search_variable_dims(
-        trial,
-        input_dim=input_dim,
-        params={
-            "n_layers_min": n_layers_min,
-            "n_layers_max": n_layers_max,
-            "hidden_dims_min": hidden_dims_min,
-            "hidden_dims_max": hidden_dims_max,
-            "hidden_dims_step": hidden_dims_step,
-            "dropout_rate_min": dropout_rate_min,
-            "dropout_rate_max": dropout_rate_max,
-            "mlp_hidden_min": mlp_hidden_min,
-            "mlp_hidden_max": mlp_hidden_max,
-        },
-        use_distances=use_distances,
-        use_angles=use_angles,
-    ).to(device)
+    logger.info(f"Starting trial {trial.number + 1}")
+    trial_start_time = time.time()
 
-    # Suggest and set up optimizer
-    lr = trial.suggest_float("learning_rate", lr_min, lr_max, log=True)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    loss_fn   = nn.MSELoss()
+    try:
+        # Option 1: Use fixed hidden dimensions per layer (original behavior)
+        # model = create_gnn_model_for_hyperparameter_search(
+        #     trial,
+        #     input_dim=input_dim,
+        #     params={
+        #         "n_layers_min": n_layers_min,
+        #         "n_layers_max": n_layers_max,
+        #         "hidden_dims_min": hidden_dims_min,
+        #         "hidden_dims_max": hidden_dims_max,
+        #         "hidden_dims_step": hidden_dims_step,
+        #         "dropout_rate_min": dropout_rate_min,
+        #         "dropout_rate_max": dropout_rate_max,
+        #         "mlp_hidden_min": mlp_hidden_min,
+        #         "mlp_hidden_max": mlp_hidden_max,
+        #     },
+        #     use_distances=use_distances,
+        #     use_angles=use_angles,
+        # ).to(device)
+        
+        # Option 2: Use variable hidden dimensions per layer (NEW)
+        model = create_gnn_model_for_hyperparameter_search_variable_dims(
+            trial,
+            input_dim=input_dim,
+            params={
+                "n_layers_min": n_layers_min,
+                "n_layers_max": n_layers_max,
+                "hidden_dims_min": hidden_dims_min,
+                "hidden_dims_max": hidden_dims_max,
+                "hidden_dims_step": hidden_dims_step,
+                "dropout_rate_min": dropout_rate_min,
+                "dropout_rate_max": dropout_rate_max,
+                "mlp_hidden_min": mlp_hidden_min,
+                "mlp_hidden_max": mlp_hidden_max,
+            },
+            use_distances=use_distances,
+            use_angles=use_angles,
+        ).to(device)
 
-    # Training loop
-    
-    pre_avg_loss = 0.0
-    for epoch in range(total_epochs_trial):
-        model.train()
-        total_loss, total_samples = 0.0, 0
-        for batch in train_loader:
-            batch = batch.to(device)
-            optimizer.zero_grad()
-            pred = model(batch)
-            loss = loss_fn(pred, batch.y.view(-1))
-            loss.backward()
-            optimizer.step()
+        logger.info(f"Model created for trial {trial.number + 1}: {trial.params}")
+        
+        # Suggest and set up optimizer
+        lr = trial.suggest_float("learning_rate", lr_min, lr_max, log=True)
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+        loss_fn   = nn.MSELoss()
 
-            total_loss    += loss.item() * batch.num_graphs
-            total_samples += batch.num_graphs
+        # Training loop
+        logger.info(f"Starting training for trial {trial.number + 1} with {total_epochs_trial} epochs")
+        
+        pre_avg_loss = 0.0
+        for epoch in range(total_epochs_trial):
+            model.train()
+            total_loss, total_samples = 0.0, 0
+            for batch in train_loader:
+                batch = batch.to(device)
+                optimizer.zero_grad()
+                pred = model(batch)
+                loss = loss_fn(pred, batch.y.view(-1))
+                loss.backward()
+                optimizer.step()
 
-        avg_loss = total_loss / total_samples
-        if epoch == 0 or (epoch+1) % 5 == 0 or epoch == total_epochs_trial - 1:
-            variation_avg_loss = avg_loss - pre_avg_loss
-            if epoch > 1:
-                print(f"Epoch {epoch+1}/{total_epochs_trial} | Avg Train Loss: {avg_loss:.4f} | Variation of avg loss: {variation_avg_loss:.4f}")
-            else:
-                print(f"Epoch {epoch+1}/{total_epochs_trial} | Avg Train Loss: {avg_loss:.4f}")
-        pre_avg_loss = avg_loss
+                total_loss    += loss.item() * batch.num_graphs
+                total_samples += batch.num_graphs
 
-    # Validation
-    model.eval()
-    val_mae, val_samples = 0.0, 0
-    with torch.no_grad():
-        for batch in dev_loader:
-            batch = batch.to(device)
-            pred = model(batch)
-            val_mae     += F.l1_loss(pred, batch.y.view(-1), reduction="sum").item()
-            val_samples += batch.num_graphs
+            avg_loss = total_loss / total_samples
+            if epoch == 0 or (epoch+1) % 5 == 0 or epoch == total_epochs_trial - 1:
+                variation_avg_loss = avg_loss - pre_avg_loss
+                if epoch > 1:
+                    print(f"Epoch {epoch+1}/{total_epochs_trial} | Avg Train Loss: {avg_loss:.4f} | Variation of avg loss: {variation_avg_loss:.4f}")
+                    logger.debug(f"Trial {trial.number + 1}, Epoch {epoch+1}: Train Loss={avg_loss:.4f}, Variation={variation_avg_loss:.4f}")
+                else:
+                    print(f"Epoch {epoch+1}/{total_epochs_trial} | Avg Train Loss: {avg_loss:.4f}")
+                    logger.debug(f"Trial {trial.number + 1}, Epoch {epoch+1}: Train Loss={avg_loss:.4f}")
+            pre_avg_loss = avg_loss
 
-    return val_mae / val_samples
+        # Validation
+        logger.info(f"Starting validation for trial {trial.number + 1}")
+        model.eval()
+        val_mae, val_samples = 0.0, 0
+        with torch.no_grad():
+            for batch in dev_loader:
+                batch = batch.to(device)
+                pred = model(batch)
+                val_mae     += F.l1_loss(pred, batch.y.view(-1), reduction="sum").item()
+                val_samples += batch.num_graphs
+
+        final_mae = val_mae / val_samples
+        trial_duration = time.time() - trial_start_time
+        
+        logger.info(f"Trial {trial.number + 1} completed successfully - MAE: {final_mae:.6f}, Duration: {trial_duration:.1f}s")
+        return final_mae
+        
+    except Exception as e:
+        trial_duration = time.time() - trial_start_time
+        logger.error(f"Trial {trial.number + 1} failed after {trial_duration:.1f}s: {str(e)}")
+        logger.error(f"Trial {trial.number + 1} parameters: {trial.params}")
+        raise e
 
 
 if __name__ == '__main__':
@@ -190,8 +247,21 @@ if __name__ == '__main__':
     parser.add_argument('--split_train', type=float, default=0.8, help="Fraction of the data that will be used to train model. The rest will be used in evaluation and development (50%, 50%)")
     parser.add_argument('--mlp_hidden_min', type=int, default=64, help='Minimum hidden units for MLP layer')
     parser.add_argument('--mlp_hidden_max', type=int, default=256, help='Maximum hidden units for MLP layer')
+    parser.add_argument('--log_level', type=str, default='INFO', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'], help='Logging level')
     
     args = parser.parse_args()
+    
+    # Update logger level if specified
+    if hasattr(args, 'log_level'):
+        log_level = getattr(logging, args.log_level.upper())
+        logging.getLogger().setLevel(log_level)
+        logger.setLevel(log_level)
+    
+    # Log all arguments
+    logger.info("=" * 60)
+    logger.info("HYPERPARAMETER OPTIMIZATION STARTED")
+    logger.info("=" * 60)
+    logger.info(f"Arguments: {vars(args)}")
     
     use_angles = args.use_angles
     use_distances = args.use_distances
@@ -216,14 +286,20 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # print if using GPU or CPU
     print(f"Using device: {device}")
+    logger.info(f"Using device: {device}")
     
     # load data
+    logger.info(f"Loading dataset from: {file_list_data}")
     dataset, input_dim = load_dataset(file_list_data)
+    logger.info(f"Dataset loaded - Size: {len(dataset)}, Input dimension: {input_dim}")
     
     # split dataset
+    logger.info(f"Splitting dataset - Train ratio: {split_train}, Batch size: {batch_size}")
     train_loader, dev_loader, val_loader = split_data_set(dataset, batch_size, split_ratio=split_train)
+    logger.info(f"Data split completed - Train batches: {len(train_loader)}, Dev batches: {len(dev_loader)}, Val batches: {len(val_loader)}")
 
     # Bayesian optimization
+    logger.info("Setting up Optuna study")
     sampler = optuna.samplers.TPESampler(seed=seed)
     study = optuna.create_study(direction="minimize", sampler=sampler)
     
@@ -232,18 +308,50 @@ if __name__ == '__main__':
     
     # Record study start time
     study_start_time = time.time()
-    print(f"🚀 Starting optimization at {datetime.now().strftime('%H:%M:%S')}")
-    print(f"📊 Running {n_trials_Bayesian_optimization} trials")
+    start_datetime = datetime.now()
+    logger.info(f"Optimization started at {start_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"Running {n_trials_Bayesian_optimization} trials with {total_epochs_trial} epochs each")
+    logger.info(f"Hyperparameter ranges:")
+    logger.info(f"  - Layers: {n_layers_min}-{n_layers_max}")
+    logger.info(f"  - Hidden dims: {hidden_dims_min}-{hidden_dims_max} (step: {hidden_dims_step})")
+    logger.info(f"  - Dropout: {dropout_rate_min}-{dropout_rate_max}")
+    logger.info(f"  - Learning rate: {lr_min}-{lr_max}")
+    logger.info(f"  - MLP hidden: {mlp_hidden_min}-{mlp_hidden_max}")
+    logger.info(f"  - Use angles: {use_angles}, Use distances: {use_distances}")
+    
+    print(f"Starting optimization at {datetime.now().strftime('%H:%M:%S')}")
+    print(f"Running {n_trials_Bayesian_optimization} trials")
+    print(f"Log file: {log_file}")
     print("=" * 80)
     
     # Option 1: Use custom callback with default Optuna logging
-    study.optimize(objective, n_trials=n_trials_Bayesian_optimization, callbacks=[custom_callback])
+    try:
+        study.optimize(objective, n_trials=n_trials_Bayesian_optimization, callbacks=[custom_callback])
+    except KeyboardInterrupt:
+        logger.warning("Optimization interrupted by user")
+        print("\nOptimization interrupted by user")
+    except Exception as e:
+        logger.error(f"Optimization failed: {str(e)}")
+        print(f"\nOptimization failed: {str(e)}")
+        raise
     
     # Calculate total study duration
     total_duration = time.time() - study_start_time
+    end_datetime = datetime.now()
+    
+    logger.info("=" * 60)
+    logger.info("OPTIMIZATION COMPLETED")
+    logger.info("=" * 60)
+    logger.info(f"Start time: {start_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"End time: {end_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"Total duration: {str(timedelta(seconds=int(total_duration)))}")
+    logger.info(f"Average time per trial: {total_duration/n_trials_Bayesian_optimization:.1f}s")
+    logger.info(f"Best MAE: {study.best_value:.6f}")
+    logger.info(f"Best hyperparameters: {study.best_trial.params}")
+    
     print("=" * 80)
-    print(f"✅ Optimization completed in {str(timedelta(seconds=int(total_duration)))}")
-    print(f"⏱️  Average time per trial: {total_duration/n_trials_Bayesian_optimization:.1f}s")
+    print(f"Optimization completed in {str(timedelta(seconds=int(total_duration)))}")
+    print(f"Average time per trial: {total_duration/n_trials_Bayesian_optimization:.1f}s")
     
     # Option 2: Disable default Optuna logging and use only custom callback
     # optuna.logging.set_verbosity(optuna.logging.WARNING)  # Suppress default messages
@@ -253,13 +361,27 @@ if __name__ == '__main__':
     print("Best hyperparameters:", study.best_trial.params)
     
     # save json file with best hyperparameters
+    logger.info("Saving best hyperparameters to best_params.json")
     with open("best_params.json", "w") as f:
         json.dump(study.best_trial.params, f, indent=4)
     
-    fig1 = vis.plot_optimization_history(study)
-    fig2 = vis.plot_param_importances(study)
-    fig3 = vis.plot_slice(study)
+    # Generate and save visualization plots
+    try:
+        logger.info("Generating optimization plots")
+        fig1 = vis.plot_optimization_history(study)
+        fig2 = vis.plot_param_importances(study)
+        fig3 = vis.plot_slice(study)
 
-    fig1.write_html("optimization_history.html")
-    fig2.write_html("param_importances.html")
-    fig3.write_html("hyperparameter_slices.html")
+        fig1.write_html("optimization_history.html")
+        fig2.write_html("param_importances.html")
+        fig3.write_html("hyperparameter_slices.html")
+        
+        logger.info("Plots saved: optimization_history.html, param_importances.html, hyperparameter_slices.html")
+        print("Plots saved: optimization_history.html, param_importances.html, hyperparameter_slices.html")
+    except Exception as e:
+        logger.error(f"Failed to generate plots: {str(e)}")
+        print(f"Failed to generate plots: {str(e)}")
+    
+    logger.info("=" * 60)
+    logger.info("SCRIPT COMPLETED SUCCESSFULLY")
+    logger.info("=" * 60)
