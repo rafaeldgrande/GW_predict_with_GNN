@@ -1,5 +1,3 @@
-
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -337,6 +335,120 @@ def create_gnn_model_for_hyperparameter_search_fixed_n_units_per_layer(
     ) 
 
 
+def create_gnn_model_for_hyperparameter_search_variable_dims(
+    trial,
+    input_dim: int,
+    params: dict,
+    use_distances: bool = True,
+    use_angles: bool = True
+) -> AngleGNN:
+    """
+    Build an AngleGNN with variable hidden dimensions per layer inside an Optuna objective.
+
+    Args:
+        trial:           an Optuna Trial
+        input_dim:       dimensionality of each node feature vector
+        params:          dict containing the hyperparameter bounds:
+                         {
+                             "n_layers_min": int,
+                             "n_layers_max": int,
+                             "hidden_dims_min": int,
+                             "hidden_dims_max": int,
+                             "hidden_dims_step": int,
+                             "dropout_rate_min": float,
+                             "dropout_rate_max": float,
+                             "mlp_hidden_min": int,
+                             "mlp_hidden_max": int,
+                         }
+        use_distances:   whether to include distance features
+        use_angles:      whether to include angle features
+
+    Returns:
+        An un‑trained AngleGNN instance with hyperparameters suggested by Optuna.
+    """
+    # unpack search‑space bounds
+    nl_min = params["n_layers_min"]
+    nl_max = params["n_layers_max"]
+    h_min  = params["hidden_dims_min"]
+    h_max  = params["hidden_dims_max"]
+    h_step = params["hidden_dims_step"]
+    dr_min = params["dropout_rate_min"]
+    dr_max = params["dropout_rate_max"]
+    mlp_min = params["mlp_hidden_min"]
+    mlp_max = params["mlp_hidden_max"]
+
+    # sample with Optuna
+    n_layers     = trial.suggest_int("n_layers", nl_min, nl_max)
+    dropout_rate = trial.suggest_float("dropout_rate", dr_min, dr_max)
+    mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", mlp_min, mlp_max)
+
+    # Variable hidden dimensions per layer
+    hidden_dims = []
+    for i in range(n_layers):
+        layer_dim = trial.suggest_int(f"hidden_dim_layer_{i}", h_min, h_max, step=h_step)
+        hidden_dims.append(layer_dim)
+
+    return AngleGNN(
+        input_dim=input_dim,
+        hidden_dims=hidden_dims,
+        activation="relu",
+        dropout_rate=dropout_rate,
+        use_distances=use_distances,
+        use_angles=use_angles,
+        mlp_hidden_dim=mlp_hidden_dim
+    ) 
+
+def create_gnn_optuna_model_for_hyperparameter_search_variable_dims(
+    trial,
+    input_dim: int,
+    params: dict,
+) -> GNNOptunaModel:
+    """
+    Build a GNNOptunaModel with variable hidden dimensions per layer inside an Optuna objective.
+
+    Args:
+        trial:           an Optuna Trial
+        input_dim:       dimensionality of each node feature vector
+        params:          dict containing the hyperparameter bounds:
+                         {
+                             "n_layers_min": int,
+                             "n_layers_max": int,
+                             "hidden_dims_min": int,
+                             "hidden_dims_max": int,
+                             "hidden_dims_step": int,
+                             "dropout_rate_min": float,
+                             "dropout_rate_max": float,
+                         }
+
+    Returns:
+        An un‑trained GNNOptunaModel instance with hyperparameters suggested by Optuna.
+    """
+    # unpack search‑space bounds
+    nl_min = params["n_layers_min"]
+    nl_max = params["n_layers_max"]
+    h_min  = params["hidden_dims_min"]
+    h_max  = params["hidden_dims_max"]
+    h_step = params["hidden_dims_step"]
+    dr_min = params["dropout_rate_min"]
+    dr_max = params["dropout_rate_max"]
+
+    # sample with Optuna
+    n_layers     = trial.suggest_int("n_layers", nl_min, nl_max)
+    dropout_rate = trial.suggest_float("dropout_rate", dr_min, dr_max)
+
+    # Variable hidden dimensions per layer
+    hidden_dims = []
+    for i in range(n_layers):
+        layer_dim = trial.suggest_int(f"hidden_dim_layer_{i}", h_min, h_max, step=h_step)
+        hidden_dims.append(layer_dim)
+
+    return GNNOptunaModel(
+        input_dim=input_dim,
+        hidden_dims=hidden_dims,
+        activation="relu",
+        dropout_rate=dropout_rate
+    ) 
+
 def create_gnn_model_from_params(params, input_dim):
     n_layers = params["n_layers"]
     hidden_dim = params["n_units"]
@@ -364,3 +476,69 @@ def create_gnn_model_from_params_fixed_n_units_per_layer(params, input_dim):
     activation = "relu"
 
     return GNNOptunaModel(input_dim, hidden_dims, activation, dropout_rate)
+
+def create_gnn_model_from_params_variable_dims(params, input_dim):
+    """
+    Builds a GNN model from hyperparameters with variable hidden dimensions per layer.
+
+    Args:
+        params (dict): Hyperparameters for the GNN model, including layer-specific dimensions.
+        input_dim (int): Input dimensionality of the node features.
+
+    Returns:
+        AngleGNN: An un-trained GNN model with variable hidden dimensions per layer.
+    """
+    n_layers = params["n_layers"]
+    dropout_rate = params["dropout_rate"]
+    mlp_hidden_dim = params.get("mlp_hidden_dim", 64)
+    
+    # Extract layer-specific dimensions
+    hidden_dims = []
+    for i in range(n_layers):
+        layer_key = f"hidden_dim_layer_{i}"
+        if layer_key in params:
+            hidden_dims.append(params[layer_key])
+        else:
+            # Fallback to n_units if layer-specific dims not found
+            hidden_dims.append(params.get("n_units", 64))
+
+    return AngleGNN(
+        input_dim=input_dim,
+        hidden_dims=hidden_dims,
+        activation="relu",
+        dropout_rate=dropout_rate,
+        use_distances=True,
+        use_angles=True,
+        mlp_hidden_dim=mlp_hidden_dim
+    )
+
+def create_gnn_optuna_model_from_params_variable_dims(params, input_dim):
+    """
+    Builds a GNNOptunaModel from hyperparameters with variable hidden dimensions per layer.
+
+    Args:
+        params (dict): Hyperparameters for the GNN model, including layer-specific dimensions.
+        input_dim (int): Input dimensionality of the node features.
+
+    Returns:
+        GNNOptunaModel: An un-trained GNN model with variable hidden dimensions per layer.
+    """
+    n_layers = params["n_layers"]
+    dropout_rate = params["dropout_rate"]
+    
+    # Extract layer-specific dimensions
+    hidden_dims = []
+    for i in range(n_layers):
+        layer_key = f"hidden_dim_layer_{i}"
+        if layer_key in params:
+            hidden_dims.append(params[layer_key])
+        else:
+            # Fallback to n_units if layer-specific dims not found
+            hidden_dims.append(params.get("n_units", 64))
+
+    return GNNOptunaModel(
+        input_dim=input_dim,
+        hidden_dims=hidden_dims,
+        activation="relu",
+        dropout_rate=dropout_rate
+    )

@@ -11,6 +11,8 @@ import logging
 import optuna
 import optuna.visualization as vis
 from torch_geometric.loader import DataLoader
+import time
+from datetime import datetime, timedelta
 
 # Configure Optuna logging level (optional)
 optuna.logging.set_verbosity(optuna.logging.INFO)  # Can be DEBUG, INFO, WARNING, ERROR
@@ -27,9 +29,29 @@ def custom_callback(study, trial):
     # Get total number of trials from study user attributes (set during optimization)
     total_trials = study.user_attrs.get('total_trials', '?')
     
+    # Calculate trial duration and estimate remaining time
+    trial_duration = trial.duration.total_seconds() if trial.duration else 0
+    
+    # Calculate average trial duration from completed trials
+    completed_trials = [t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE]
+    if len(completed_trials) > 0:
+        total_duration = sum([t.duration.total_seconds() for t in completed_trials if t.duration])
+        avg_duration = total_duration / len(completed_trials)
+        remaining_trials = total_trials - len(completed_trials)
+        estimated_remaining_time = avg_duration * remaining_trials
+        
+        # Format estimated completion time
+        eta = datetime.now() + timedelta(seconds=estimated_remaining_time)
+        eta_str = eta.strftime("%H:%M:%S")
+        remaining_time_str = str(timedelta(seconds=int(estimated_remaining_time)))
+    else:
+        eta_str = "Unknown"
+        remaining_time_str = "Unknown"
+    
     # Custom formatted output
     print(f"Trial {trial.number + 1} of {total_trials} | MAE: {current_value:.6f} | "
           f"Best MAE: {best_value:.6f} (Trial {best_trial_number + 1})")
+    print(f"   Duration: {trial_duration:.1f}s | ETA: {eta_str} | Remaining: {remaining_time_str}")
     
     # Show parameter summary in a nicer format
     params = trial.params
@@ -61,7 +83,27 @@ def objective(trial):
         float: The mean absolute error (MAE) of the model on the validation set.
     """
 
-    model = create_gnn_model_for_hyperparameter_search(
+    # Option 1: Use fixed hidden dimensions per layer (original behavior)
+    # model = create_gnn_model_for_hyperparameter_search(
+    #     trial,
+    #     input_dim=input_dim,
+    #     params={
+    #         "n_layers_min": n_layers_min,
+    #         "n_layers_max": n_layers_max,
+    #         "hidden_dims_min": hidden_dims_min,
+    #         "hidden_dims_max": hidden_dims_max,
+    #         "hidden_dims_step": hidden_dims_step,
+    #         "dropout_rate_min": dropout_rate_min,
+    #         "dropout_rate_max": dropout_rate_max,
+    #         "mlp_hidden_min": mlp_hidden_min,
+    #         "mlp_hidden_max": mlp_hidden_max,
+    #     },
+    #     use_distances=use_distances,
+    #     use_angles=use_angles,
+    # ).to(device)
+    
+    # Option 2: Use variable hidden dimensions per layer (NEW)
+    model = create_gnn_model_for_hyperparameter_search_variable_dims(
         trial,
         input_dim=input_dim,
         params={
@@ -72,8 +114,8 @@ def objective(trial):
             "hidden_dims_step": hidden_dims_step,
             "dropout_rate_min": dropout_rate_min,
             "dropout_rate_max": dropout_rate_max,
-            "mlp_hidden_min": mlp_hidden_min,  # Example value, adjust as needed
-            "mlp_hidden_max": mlp_hidden_max,  # Example value, adjust as needed
+            "mlp_hidden_min": mlp_hidden_min,
+            "mlp_hidden_max": mlp_hidden_max,
         },
         use_distances=use_distances,
         use_angles=use_angles,
@@ -188,8 +230,20 @@ if __name__ == '__main__':
     # Set total trials for the callback to display progress
     study.set_user_attr('total_trials', n_trials_Bayesian_optimization)
     
+    # Record study start time
+    study_start_time = time.time()
+    print(f"🚀 Starting optimization at {datetime.now().strftime('%H:%M:%S')}")
+    print(f"📊 Running {n_trials_Bayesian_optimization} trials")
+    print("=" * 80)
+    
     # Option 1: Use custom callback with default Optuna logging
     study.optimize(objective, n_trials=n_trials_Bayesian_optimization, callbacks=[custom_callback])
+    
+    # Calculate total study duration
+    total_duration = time.time() - study_start_time
+    print("=" * 80)
+    print(f"✅ Optimization completed in {str(timedelta(seconds=int(total_duration)))}")
+    print(f"⏱️  Average time per trial: {total_duration/n_trials_Bayesian_optimization:.1f}s")
     
     # Option 2: Disable default Optuna logging and use only custom callback
     # optuna.logging.set_verbosity(optuna.logging.WARNING)  # Suppress default messages
