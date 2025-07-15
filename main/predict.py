@@ -24,14 +24,32 @@ def setup_logging(log_level=logging.INFO):
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     log_filename = f'logs/prediction_{timestamp}.log'
     
-    # Configure logging format
+    # Clear any existing handlers
+    logging.getLogger().handlers.clear()
+    
+    # Create custom formatter for INFO messages (more readable)
+    class InfoFormatter(logging.Formatter):
+        def format(self, record):
+            if record.levelno == logging.INFO:
+                return record.getMessage()
+            else:
+                # Keep full format for non-INFO messages (DEBUG, WARNING, ERROR)
+                return f'{record.asctime} - {record.name} - {record.levelname} - {record.getMessage()}'
+    
+    # Create file handler with full format for all levels
+    file_handler = logging.FileHandler(log_filename)
+    file_handler.setLevel(log_level)
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    
+    # Create console handler with simplified format for INFO
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(log_level)
+    console_handler.setFormatter(InfoFormatter())
+    
+    # Configure root logger
     logging.basicConfig(
         level=log_level,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(log_filename),
-            logging.StreamHandler()  # Also log to console
-        ]
+        handlers=[file_handler, console_handler]
     )
     
     # Get logger for this module

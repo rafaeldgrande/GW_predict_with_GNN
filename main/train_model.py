@@ -20,17 +20,42 @@ from datetime import datetime, timedelta
 # Configure logging
 def setup_logging(log_level=logging.INFO):
     """Setup logging configuration for the training process."""
+    # Create logs directory if it doesn't exist
     os.makedirs('logs', exist_ok=True)
+    
+    # Create timestamp for unique log file
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     log_filename = f'logs/train_model_{timestamp}.log'
+    
+    # Clear any existing handlers
+    logging.getLogger().handlers.clear()
+    
+    # Create custom formatter for INFO messages (more readable)
+    class InfoFormatter(logging.Formatter):
+        def format(self, record):
+            if record.levelno == logging.INFO:
+                return record.getMessage()
+            else:
+                # Keep full format for non-INFO messages (DEBUG, WARNING, ERROR)
+                return f'{record.asctime} - {record.name} - {record.levelname} - {record.getMessage()}'
+    
+    # Create file handler with full format for all levels
+    file_handler = logging.FileHandler(log_filename)
+    file_handler.setLevel(log_level)
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    
+    # Create console handler with simplified format for INFO
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(log_level)
+    console_handler.setFormatter(InfoFormatter())
+    
+    # Configure root logger
     logging.basicConfig(
         level=log_level,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(log_filename),
-            logging.StreamHandler()
-        ]
+        handlers=[file_handler, console_handler]
     )
+    
+    # Get logger for this module
     logger = logging.getLogger(__name__)
     logger.info(f"Logging initialized. Log file: {log_filename}")
     return logger, log_filename
