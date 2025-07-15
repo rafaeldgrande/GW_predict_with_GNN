@@ -451,10 +451,21 @@ def create_gnn_optuna_model_for_hyperparameter_search_variable_dims(
 
 def create_gnn_model_from_params(params, input_dim):
     n_layers = params["n_layers"]
-    hidden_dim = params["n_units"]
-    hidden_dims = [hidden_dim] * n_layers
     dropout_rate = params["dropout_rate"]
     activation = "relu"
+
+    # Support both old and new parameter formats
+    hidden_dims = []
+    if "n_units" in params:
+        hidden_dim = params["n_units"]
+        hidden_dims = [hidden_dim] * n_layers
+    else:
+        for i in range(n_layers):
+            key = f"hidden_dim_layer_{i}"
+            if key in params:
+                hidden_dims.append(params[key])
+            else:
+                raise KeyError(f"Missing {key} in params")
 
     return GNNOptunaModel(input_dim, hidden_dims, activation, dropout_rate)
 
