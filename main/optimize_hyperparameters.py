@@ -1,4 +1,3 @@
-
 # Loads your dataset
 # Runs Optuna for N trials
 # Saves best hyperparameters to best_params.json or best_params.pkl
@@ -7,10 +6,44 @@
 from gnn_def import *
 from utils import *
 import argparse
+import logging
 
 import optuna
 import optuna.visualization as vis
 from torch_geometric.loader import DataLoader
+
+# Configure Optuna logging level (optional)
+optuna.logging.set_verbosity(optuna.logging.INFO)  # Can be DEBUG, INFO, WARNING, ERROR
+
+def custom_callback(study, trial):
+    """
+    Custom callback function to customize Optuna output logging.
+    This function is called after each trial completion.
+    """
+    current_value = trial.value
+    best_value = study.best_value
+    best_trial_number = study.best_trial.number
+    
+    # Get total number of trials from study user attributes (set during optimization)
+    total_trials = study.user_attrs.get('total_trials', '?')
+    
+    # Custom formatted output
+    print(f"Trial {trial.number + 1} of {total_trials} | MAE: {current_value:.6f} | "
+          f"Best MAE: {best_value:.6f} (Trial {best_trial_number + 1})")
+    
+    # Show parameter summary in a nicer format
+    params = trial.params
+    param_str = " | ".join([f"{k}: {v:.4f}" if isinstance(v, float) else f"{k}: {v}" 
+                           for k, v in params.items()])
+    print(f"   Parameters: {param_str}")
+    
+    # Show improvement status
+    if trial.number > 0:
+        improvement = best_value < study.trials[trial.number-1].value if trial.number > 0 else False
+        status = "NEW BEST!" if improvement and trial.number == best_trial_number else " Continue"
+        print(f"    {status}")
+    
+    print("-" * 80)
 
 def objective(trial):
     # Build the model with Optuna suggestions
@@ -39,6 +72,8 @@ def objective(trial):
             "hidden_dims_step": hidden_dims_step,
             "dropout_rate_min": dropout_rate_min,
             "dropout_rate_max": dropout_rate_max,
+            "mlp_hidden_min": mlp_hidden_min,  # Example value, adjust as needed
+            "mlp_hidden_max": mlp_hidden_max,  # Example value, adjust as needed
         },
         use_distances=use_distances,
         use_angles=use_angles,
@@ -69,7 +104,10 @@ def objective(trial):
         avg_loss = total_loss / total_samples
         if epoch == 0 or (epoch+1) % 5 == 0 or epoch == total_epochs_trial - 1:
             variation_avg_loss = avg_loss - pre_avg_loss
-            print(f"Epoch {epoch+1}/{total_epochs_trial} | Avg Train Loss: {avg_loss:.4f} | Variation of avg loss: {variation_avg_loss:.4f}")
+            if epoch > 1:
+                print(f"Epoch {epoch+1}/{total_epochs_trial} | Avg Train Loss: {avg_loss:.4f} | Variation of avg loss: {variation_avg_loss:.4f}")
+            else:
+                print(f"Epoch {epoch+1}/{total_epochs_trial} | Avg Train Loss: {avg_loss:.4f}")
         pre_avg_loss = avg_loss
 
     # Validation
@@ -108,6 +146,8 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=42, help='Random seed for reproducibility')
     parser.add_argument('--file_list_data', type=str, default='data_list.txt', help='File containing the list of data files to be read')
     parser.add_argument('--split_train', type=float, default=0.8, help="Fraction of the data that will be used to train model. The rest will be used in evaluation and development (50%, 50%)")
+    parser.add_argument('--mlp_hidden_min', type=int, default=64, help='Minimum hidden units for MLP layer')
+    parser.add_argument('--mlp_hidden_max', type=int, default=256, help='Maximum hidden units for MLP layer')
     
     args = parser.parse_args()
     
@@ -128,6 +168,8 @@ if __name__ == '__main__':
     seed = args.seed
     file_list_data = args.file_list_data
     split_train = args.split_train
+    mlp_hidden_min = args.mlp_hidden_min
+    mlp_hidden_max = args.mlp_hidden_max
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # print if using GPU or CPU
@@ -142,7 +184,16 @@ if __name__ == '__main__':
     # Bayesian optimization
     sampler = optuna.samplers.TPESampler(seed=seed)
     study = optuna.create_study(direction="minimize", sampler=sampler)
-    study.optimize(objective, n_trials=n_trials_Bayesian_optimization)
+    
+    # Set total trials for the callback to display progress
+    study.set_user_attr('total_trials', n_trials_Bayesian_optimization)
+    
+    # Option 1: Use custom callback with default Optuna logging
+    study.optimize(objective, n_trials=n_trials_Bayesian_optimization, callbacks=[custom_callback])
+    
+    # Option 2: Disable default Optuna logging and use only custom callback
+    # optuna.logging.set_verbosity(optuna.logging.WARNING)  # Suppress default messages
+    # study.optimize(objective, n_trials=n_trials_Bayesian_optimization, callbacks=[custom_callback])
 
     print("Best MAE:", study.best_value)
     print("Best hyperparameters:", study.best_trial.params)

@@ -23,7 +23,9 @@ def test_optuna_hyperparameter_search():
         "--total_epochs_trial", "2",               # also reduce epochs
         "--batch_size", "4",
         "--lr_min", "1e-3",
-        "--lr_max", "1e-2"
+        "--lr_max", "1e-2",
+        "--mlp_hidden_min", "32",
+        "--mlp_hidden_max", "64",
     ], capture_output=True, text=True)
 
     print(result.stdout)
