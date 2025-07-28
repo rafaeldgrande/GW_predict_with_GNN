@@ -2,7 +2,7 @@ import argparse
 
 '''Usage:
 
-python map_orbitals_atoms.py -projwfc_output wfcproj.out
+python map_orbitals_atoms.py -projwfc_output projwfc.out
 '''
 
 
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-projwfc_output", "--projwfc_out_file", 
                         help="Output file from wfcproj.x", 
-                        default="wfcproj.out")
+                        default="projwfc.out", type=str)
     args = parser.parse_args()
 
     # Step 1: Parse the wavefunction projections

@@ -87,8 +87,8 @@ def read_eqp_dat_file(eqp_file, Nval=0):
 def get_orbital_mapping(orbital_mapping_file):
     print('Reading file: ', orbital_mapping_file) # atom_index original_orbital_index reduced_orbital_index
     data = np.loadtxt(orbital_mapping_file)
-    print('data shape: ', data.shape)
-           
+    print('data shape: ', data.shape) # shape = (num_atoms, 2)
+
     return data
 
 
