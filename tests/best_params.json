@@ -1,8 +1,8 @@
 {
     "n_layers": 2,
-    "dropout_rate": 0.2901428612819832,
-    "mlp_hidden_dim": 56,
+    "dropout_rate": 0.273235229154987,
+    "mlp_hidden_dim": 51,
     "hidden_dim_layer_0": 64,
     "hidden_dim_layer_1": 32,
-    "learning_rate": 0.0014321698289111518
+    "learning_rate": 0.009330606024425666
 }

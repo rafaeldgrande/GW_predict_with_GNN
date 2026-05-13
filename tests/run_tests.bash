@@ -18,7 +18,7 @@ run_test() {
     echo "Running $test_name tests..."
     echo "------------------------------------------------------------------------------------"
     
-    if pytest "$test_file" -v -s; then
+    if python -m pytest "$test_file" -v -s; then
         echo "✓ $test_name tests PASSED"
     else
         echo "✗ $test_name tests FAILED"
