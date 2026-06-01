@@ -114,6 +114,18 @@ if __name__ == '__main__':
         dataset, input_dim = load_dataset(file_list_data)
         logger.info(f"Dataset loaded - Size: {len(dataset)}, Input dimension: {input_dim}")
         
+        # Extract DFT energies from all data points
+        edft_values = []
+        for data in dataset:
+            # Extract the edft value (should be available as data.edft)
+            if hasattr(data, 'edft'):
+                edft_values.append(data.edft.cpu().numpy().item())
+            else:
+                # Fallback: assume last column of x contains DFT energy
+                edft_values.append(data.x[:, -1].cpu().numpy()[0])
+        edft_values = np.array(edft_values)
+        logger.info(f"Extracted {len(edft_values)} DFT energy values")
+        
         all_data_loader = DataLoader(dataset, batch_size=batch_size)
         logger.info(f"Data loader created with batch size: {batch_size}, Total batches: {len(all_data_loader)}")
         
@@ -162,6 +174,19 @@ if __name__ == '__main__':
         np.savez(predictions_file, y_pred=y_pred, y_true=y_true)
         logger.info(f"Predictions saved successfully")
         print(f"Predictions saved to {predictions_file}")
+        
+        # Save eqp_from_GNN.dat file
+        eqp_filename = "eqp_from_GNN.dat"
+        logger.info(f"Saving DFT energies and GNN predictions to: {eqp_filename}")
+        try:
+            with open(eqp_filename, 'w') as f:
+                for edft, eqp in zip(edft_values, y_pred):
+                    f.write(f"{edft:.6f}, {eqp:.6f}\n")
+            logger.info(f"Successfully saved {len(edft_values)} Edft, Eqp pairs to {eqp_filename}")
+            print(f"DFT energies and GNN predictions saved to {eqp_filename}")
+        except Exception as e:
+            logger.error(f"Failed to save {eqp_filename}: {str(e)}")
+            print(f"Failed to save {eqp_filename}: {str(e)}")
         
         if plot_data:
             logger.info("Generating prediction vs true value plot")
