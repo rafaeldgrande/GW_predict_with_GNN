@@ -5,8 +5,9 @@ __pycache__/
 # System
 .DS_Store
 
-# Plots
+# Plots (generated outputs — ignored everywhere except examples/figures/)
 *.png
+!examples/figures/*.png
 
 # ML outputs
 *.pth
