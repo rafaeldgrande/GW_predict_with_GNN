@@ -158,23 +158,24 @@ All architectural hyperparameters are optimized by [Optuna](https://optuna.org) 
 
 ```
 GW_predict_with_GNN/
-├── pre_proc/
-│   ├── map_orbitals_atoms.py          # Step 1: parse projwfc.out → orbital_mapping.txt
-│   └── get_proj_for_graphs_and_eqp.py # Step 2: build HDF5 dataset
-├── main/
-│   ├── gnn_def.py                     # Model definitions (AngleGNN, GNNOptunaModel)
-│   ├── utils.py                       # Data loading, graph construction, training loop
-│   ├── optimize_hyperparameters.py    # Bayesian hyperparameter search (Optuna)
-│   ├── train_model.py                 # Full training with early stopping
-│   └── predict.py                     # Evaluation and prediction
-└── tests/
-    ├── data_for_tests.h5              # Small test dataset
-    ├── data_list.txt                  # List of HDF5 data files
-    ├── best_params.json               # Example best hyperparameters
-    ├── test_train_model.py
-    ├── test_predictions.py
-    └── test_optimize_hyperparameters.py
+├── pre_proc/          # Preprocessing: DFT/GW output → HDF5 dataset
+│   ├── README.md      # ← full flag reference for preprocessing scripts
+│   ├── map_orbitals_atoms.py
+│   └── get_proj_for_graphs_and_eqp.py
+├── main/              # GNN training and prediction
+│   ├── README.md      # ← full flag reference for all training/prediction scripts
+│   ├── gnn_def.py
+│   ├── utils.py
+│   ├── optimize_hyperparameters.py
+│   ├── train_model.py
+│   └── predict.py
+└── tests/             # Automated test suite
+    ├── README.md      # ← how to run tests and what each test checks
+    ├── data_for_tests.h5
+    └── test_*.py
 ```
+
+> **See the `README.md` in each subdirectory for the complete list of flags and options for every script.**
 
 ### HDF5 data file structure
 
