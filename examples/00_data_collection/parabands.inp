@@ -1,0 +1,11 @@
+input_wfn_file  wfn.complex
+output_wfn_file WFN.h5
+vsc_file        VSC
+vkb_file        VKB
+verbosity       2
+
+! Wannier-based band extrapolation: generates many more bands than computed
+! by pw.x, greatly reducing the convergence cost of the dielectric matrix
+use_pseudobands
+protected_cond_bands 40
+accumulation_window  0.02

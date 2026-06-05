@@ -1,35 +1,81 @@
 #!/bin/bash
-#SBATCH --job-name=dft_gw
-#SBATCH --partition=small          # adjust for your cluster
+#SBATCH --job-name=dft_gw_mos2
+#SBATCH --partition=small
 #SBATCH --nodes=1
-#SBATCH --ntasks=32
-#SBATCH --cpus-per-task=1
-#SBATCH --mem=64G
+#SBATCH --ntasks-per-node=56
+#SBATCH --time=6:00:00
 #SBATCH --output=dft_gw_%j.out
 #SBATCH --error=dft_gw_%j.err
 
-module load quantum-espresso  # adjust for your cluster
-module load berkeleygw         # adjust for your cluster
+export OMP_NUM_THREADS=1
 
-NPROC=32
-QE="mpirun -np $NPROC pw.x"
-PROJWFC="mpirun -np $NPROC projwfc.x"
-EPSILON="mpirun -np $NPROC epsilon.x"
-SIGMA="mpirun -np $NPROC sigma.x"
+module load quantum-espresso
+module load openmpi hdf5   # adjust for your cluster
 
-# Step 1: SCF
-$QE < scf.in > scf.out
+echo "Starting job $SLURM_JOB_ID on $(hostname) at $(date)"
 
-# Step 2: Bands on GW k-grid
-$QE < bands.in > bands.out
+# Step 1: SCF ground state (6x6x1 k-grid, 36 k-points)
+cd 1-scf/
+srun -n 4 pw.x < scf.in > scf.out
+srun -n 1 pw2bgw.x < pw2bgw-1scf.in > pw2bgw.out
+cd ../
+echo "Step 1 (SCF) done at $(date)"
 
-# Step 3: Wavefunction projections (projwfc.x)
-$PROJWFC < projwfc.in > projwfc.out
-# Outputs: atomic_proj.xml, projwfc.out
+# Step 2: WFN — bands on GW k-grid for epsilon/sigma
+cd 2-wfn_co/
+mkdir -p mos2.save/
+cp ../1-scf/mos2.save/data-file-schema.xml mos2.save/
+cp ../1-scf/mos2.save/charge-density* mos2.save/
+srun -n 4 pw.x < bands.in > bands.out
+srun -n 1 pw2bgw.x < pw2bgw-2wfn.in > pw2bgw.out
+cd ../
+echo "Step 2 (WFN) done at $(date)"
 
-# Step 4: Dielectric matrix (BerkeleyGW)
-$EPSILON < epsilon.inp > epsilon.out
+# Step 3: WFNq — bands at shifted k-grid (for optical limit of dielectric matrix)
+cd 3-wfnq_co/
+mkdir -p mos2.save/
+cp ../1-scf/mos2.save/data-file-schema.xml mos2.save/
+cp ../1-scf/mos2.save/charge-density* mos2.save/
+srun -n 4 pw.x < bands.in > bands.out
+srun -n 1 pw2bgw.x < pw2bgw-2wfn.in > pw2bgw.out
+wfn2hdf.x BIN wfn.complex WFN.h5
+cd ../
+echo "Step 3 (WFNq) done at $(date)"
 
-# Step 5: Self-energy (BerkeleyGW)
-$SIGMA < sigma.inp > sigma.out
-# Output: eqp.dat
+# Step 4: Parabands — Wannier-based band extrapolation for faster convergence
+cd 4-parabands/
+ln -sf ../2-wfn_co/wfn.complex .
+ln -sf ../2-wfn_co/VKB .
+ln -sf ../2-wfn_co/VSC .
+srun parabands.cplx.x > parabands.out
+cd ../
+echo "Step 4 (Parabands) done at $(date)"
+
+# Step 5: Epsilon — dielectric matrix
+cd 5-epsilon/
+ln -sf ../2-wfn_co/WFN.h5 .
+ln -sf ../3-wfnq_co/WFN.h5 WFNq.h5
+srun epsilon.cplx.x > epsilon.out
+cd ../
+echo "Step 5 (Epsilon) done at $(date)"
+
+# Step 6: Sigma — self-energy and QP corrections
+cd 6-sigma/
+ln -sf ../2-wfn_co/WFN.h5 WFN_inner.h5
+ln -sf ../2-wfn_co/WFN.h5 WFN_outer.h5
+ln -sf ../5-epsilon/eps0mat.h5 .
+ln -sf ../5-epsilon/epsmat.h5 .
+ln -sf ../2-wfn_co/VXC .
+ln -sf ../2-wfn_co/RHO .
+srun sigma.cplx.x > sigma.out
+cd ../
+echo "Step 6 (Sigma) done at $(date)"
+
+# Step 7: Wavefunction projections for GNN preprocessing
+# (run from the 2-wfn_co directory so projwfc.x finds the wavefunction files)
+cd 2-wfn_co/
+srun -n 1 projwfc.x < projwfc.in > projwfc.out
+cd ../
+echo "Step 7 (projwfc) done at $(date)"
+
+echo "Job finished at $(date)"

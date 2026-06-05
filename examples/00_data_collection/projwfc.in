@@ -1,8 +1,9 @@
-&projwfc
-    prefix       = 'mos2'
-    outdir       = './tmp'
-    filproj      = 'mos2.projwfc'
-    Emin         = -20.0
-    Emax         =  10.0
-    DeltaE       =   0.01
+&PROJWFC
+   outdir          = './'
+   prefix          = 'mos2'
+   lsym            = .true.
+   lwrite_overlaps = .true.
 /
+! Outputs:
+!   atomic_proj.xml  -> read by pre_proc/get_proj_for_graphs_and_eqp.py
+!   projwfc.out      -> read by pre_proc/map_orbitals_atoms.py
