@@ -1,0 +1,11 @@
+number_bands 200
+band_index_min 1
+band_index_max 30
+screened_coulomb_cutoff 35.0
+bare_coulomb_cutoff 60.0
+
+begin kpoints
+  0.000000  0.000000  0.000000  1.0
+  0.083333  0.000000  0.000000  1.0
+  ! ... (full k-point list)
+end kpoints

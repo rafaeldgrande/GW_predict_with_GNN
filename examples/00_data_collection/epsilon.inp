@@ -1,0 +1,8 @@
+epsilon_cutoff 35.0
+number_bands 200
+
+begin kpoints
+  0.000000  0.000000  0.000000  1.0
+  0.083333  0.000000  0.000000  1.0
+  ! ... (full k-point list from bands calculation)
+end kpoints

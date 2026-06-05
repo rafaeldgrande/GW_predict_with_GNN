@@ -1,0 +1,8 @@
+&projwfc
+    prefix       = 'mos2'
+    outdir       = './tmp'
+    filproj      = 'mos2.projwfc'
+    Emin         = -20.0
+    Emax         =  10.0
+    DeltaE       =   0.01
+/

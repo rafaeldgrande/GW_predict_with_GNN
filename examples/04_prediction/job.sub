@@ -1,0 +1,26 @@
+#!/bin/bash
+#SBATCH --job-name=GNN_predict
+#SBATCH --partition=small
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=16G
+#SBATCH --output=predict_%j.out
+#SBATCH --error=predict_%j.err
+
+source $(conda info --base)/etc/profile.d/conda.sh
+conda activate gnn_env
+
+RUNDIR="/path/to/your/run/directory"
+MAINDIR="/path/to/GW_predict_with_GNN/main"
+
+cd $RUNDIR
+
+python $MAINDIR/predict.py \
+    --model best_params.json \
+    --weights_file out_weights.pth \
+    --file_list_data data_list.txt \
+    --predictions_file predictions.npz \
+    --plot_data
+
+echo "Predictions saved to predictions.npz and eqp_from_GNN.dat"

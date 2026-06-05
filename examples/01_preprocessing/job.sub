@@ -1,0 +1,31 @@
+#!/bin/bash
+#SBATCH --job-name=preproc
+#SBATCH --partition=small
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=16G
+#SBATCH --output=preproc_%j.out
+#SBATCH --error=preproc_%j.err
+
+source $(conda info --base)/etc/profile.d/conda.sh
+conda activate gnn_env
+
+CALCDIR="/path/to/your/dft_gw_calculation"   # directory with atomic_proj.xml, eqp.dat, qe.in
+PREDIR="/path/to/GW_predict_with_GNN/pre_proc"
+OUTPUT="/path/to/data.h5"
+
+cd $CALCDIR
+
+python $PREDIR/map_orbitals_atoms.py \
+    -projwfc_output projwfc.out
+
+python $PREDIR/get_proj_for_graphs_and_eqp.py \
+    -eqp eqp.dat \
+    -Nval 13 \
+    -proj_file atomic_proj.xml \
+    -orbital_mapping_file orbital_mapping.txt \
+    -qe_input_file qe.in \
+    -output $OUTPUT
+
+echo "Preprocessing complete: $OUTPUT"

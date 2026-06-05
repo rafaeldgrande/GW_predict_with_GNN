@@ -1,0 +1,35 @@
+#!/bin/bash
+#SBATCH --job-name=dft_gw
+#SBATCH --partition=small          # adjust for your cluster
+#SBATCH --nodes=1
+#SBATCH --ntasks=32
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=64G
+#SBATCH --output=dft_gw_%j.out
+#SBATCH --error=dft_gw_%j.err
+
+module load quantum-espresso  # adjust for your cluster
+module load berkeleygw         # adjust for your cluster
+
+NPROC=32
+QE="mpirun -np $NPROC pw.x"
+PROJWFC="mpirun -np $NPROC projwfc.x"
+EPSILON="mpirun -np $NPROC epsilon.x"
+SIGMA="mpirun -np $NPROC sigma.x"
+
+# Step 1: SCF
+$QE < scf.in > scf.out
+
+# Step 2: Bands on GW k-grid
+$QE < bands.in > bands.out
+
+# Step 3: Wavefunction projections (projwfc.x)
+$PROJWFC < projwfc.in > projwfc.out
+# Outputs: atomic_proj.xml, projwfc.out
+
+# Step 4: Dielectric matrix (BerkeleyGW)
+$EPSILON < epsilon.inp > epsilon.out
+
+# Step 5: Self-energy (BerkeleyGW)
+$SIGMA < sigma.inp > sigma.out
+# Output: eqp.dat

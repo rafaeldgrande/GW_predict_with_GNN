@@ -1,0 +1,32 @@
+#!/bin/bash
+#SBATCH --job-name=GNN_train
+#SBATCH --partition=gpu
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=8
+#SBATCH --gres=gpu:1
+#SBATCH --mem=32G
+#SBATCH --output=train_%j.out
+#SBATCH --error=train_%j.err
+
+module load nvhpc
+source $(conda info --base)/etc/profile.d/conda.sh
+conda activate gnn_env
+
+RUNDIR="/path/to/your/run/directory"
+MAINDIR="/path/to/GW_predict_with_GNN/main"
+
+cd $RUNDIR
+
+python $MAINDIR/train_model.py \
+    --model best_params.json \
+    --file_list_data data_list.txt \
+    --epochs_train_model 500 \
+    --patience_training 30 \
+    --patience_learning_rate 10 \
+    --batch_size 32 \
+    --split_train 0.8 \
+    --output_weights_file out_weights.pth \
+    --plot_data \
+    --mlflow_tracking_uri sqlite:///mlflow.db \
+    --mlflow_experiment_name GNN_GW_training
