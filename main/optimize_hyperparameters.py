@@ -270,6 +270,7 @@ if __name__ == '__main__':
     parser.add_argument('--log_level', type=str, default='INFO', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'], help='Logging level')
     parser.add_argument('--mlflow_experiment_name', type=str, default='GNN_GW_hypersearch', help='MLflow experiment name')
     parser.add_argument('--mlflow_tracking_uri', type=str, default='sqlite:///mlflow.db', help='MLflow tracking URI. Use sqlite:///mlflow.db for local runs or sqlite:////absolute/path/mlflow.db for a shared db.')
+    parser.add_argument('--run_description', type=str, default='', help='Free-text note attached to this MLflow run (stored as a tag)')
 
     args = parser.parse_args()
     
@@ -318,6 +319,8 @@ if __name__ == '__main__':
     mlflow.set_experiment(args.mlflow_experiment_name)
     run_name = f"study_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     mlflow.start_run(run_name=run_name)
+    if args.run_description:
+        mlflow.set_tag('description', args.run_description)
     mlflow.log_params({
         'n_trials': n_trials_Bayesian_optimization,
         'epochs_per_trial': total_epochs_trial,
