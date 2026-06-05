@@ -1,5 +1,5 @@
 &CONTROL
-   calculation      = 'scf'
+   calculation      = 'bands'
    verbosity        = 'high'
    tstress          = .true.
    tprnfor          = .true.
@@ -28,21 +28,18 @@ ATOMIC_SPECIES
 Mo 95.95 Mo.upf
 S  32.06 S.upf
 
-! Lattice vectors in Angstrom (hexagonal MoS2, Lz=25 Ang vacuum)
 CELL_PARAMETERS angstrom
  3.12033078800000  0.00000000000000  0.00000000000000
 -1.56016539500000  2.70228573300000  0.00000000000000
  0.00000000000000  0.00000000000000 25.00000000000000
 
-! NOTE: atomic positions differ for each replica (thermal displacements).
-! The positions below are an example for replica_000.
-! Use generate_QE_inputs.py to produce scf.in for each replica.
+! Must match the atomic positions of the corresponding 1-scf/scf.in
 ATOMIC_POSITIONS angstrom
 Mo  0.0496714153 -0.0138264301  0.0647688538
 S   0.1523029856  1.7781084829  1.5299509095
 S   0.1579212816  1.8782672933 -1.6003120438
 
-! Full 6x6x1 k-grid (36 k-points, no symmetry reduction)
+! Same full 6x6x1 k-grid as SCF (unshifted)
 K_POINTS crystal
 36
 0.00000000  0.00000000  0.00000000  1.0

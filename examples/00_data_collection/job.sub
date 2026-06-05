@@ -8,41 +8,41 @@
 #SBATCH --error=dft_gw_%j.err
 
 export OMP_NUM_THREADS=1
-
 module load quantum-espresso
 module load openmpi hdf5   # adjust for your cluster
 
-echo "Starting job $SLURM_JOB_ID on $(hostname) at $(date)"
+echo "Job $SLURM_JOB_ID started on $(hostname) at $(date)"
 
-# Step 1: SCF ground state (6x6x1 k-grid, 36 k-points)
+# ── Step 1: SCF ──────────────────────────────────────────────────────────────
 cd 1-scf/
 srun -n 4 pw.x < scf.in > scf.out
-srun -n 1 pw2bgw.x < pw2bgw-1scf.in > pw2bgw.out
+srun -n 1 pw2bgw.x < pw2bgw.in > pw2bgw.out
 cd ../
 echo "Step 1 (SCF) done at $(date)"
 
-# Step 2: WFN — bands on GW k-grid for epsilon/sigma
+# ── Step 2: WFN (unshifted k-grid) ───────────────────────────────────────────
 cd 2-wfn_co/
 mkdir -p mos2.save/
 cp ../1-scf/mos2.save/data-file-schema.xml mos2.save/
 cp ../1-scf/mos2.save/charge-density* mos2.save/
 srun -n 4 pw.x < bands.in > bands.out
-srun -n 1 pw2bgw.x < pw2bgw-2wfn.in > pw2bgw.out
+srun -n 1 pw2bgw.x < pw2bgw.in > pw2bgw.out
+srun -n 1 projwfc.x < projwfc.in > projwfc.out
 cd ../
-echo "Step 2 (WFN) done at $(date)"
+echo "Step 2 (WFN + projwfc) done at $(date)"
 
-# Step 3: WFNq — bands at shifted k-grid (for optical limit of dielectric matrix)
+# ── Step 3: WFNq (shifted k-grid for optical limit) ──────────────────────────
 cd 3-wfnq_co/
 mkdir -p mos2.save/
 cp ../1-scf/mos2.save/data-file-schema.xml mos2.save/
 cp ../1-scf/mos2.save/charge-density* mos2.save/
 srun -n 4 pw.x < bands.in > bands.out
-srun -n 1 pw2bgw.x < pw2bgw-2wfn.in > pw2bgw.out
+srun -n 1 pw2bgw.x < pw2bgw.in > pw2bgw.out
 wfn2hdf.x BIN wfn.complex WFN.h5
 cd ../
 echo "Step 3 (WFNq) done at $(date)"
 
-# Step 4: Parabands — Wannier-based band extrapolation for faster convergence
+# ── Step 4: Parabands (pseudostochastic bands) ───────────────────────────────
 cd 4-parabands/
 ln -sf ../2-wfn_co/wfn.complex .
 ln -sf ../2-wfn_co/VKB .
@@ -51,7 +51,7 @@ srun parabands.cplx.x > parabands.out
 cd ../
 echo "Step 4 (Parabands) done at $(date)"
 
-# Step 5: Epsilon — dielectric matrix
+# ── Step 5: Epsilon (dielectric matrix) ──────────────────────────────────────
 cd 5-epsilon/
 ln -sf ../2-wfn_co/WFN.h5 .
 ln -sf ../3-wfnq_co/WFN.h5 WFNq.h5
@@ -59,7 +59,7 @@ srun epsilon.cplx.x > epsilon.out
 cd ../
 echo "Step 5 (Epsilon) done at $(date)"
 
-# Step 6: Sigma — self-energy and QP corrections
+# ── Step 6: Sigma (QP corrections → eqp.dat) ─────────────────────────────────
 cd 6-sigma/
 ln -sf ../2-wfn_co/WFN.h5 WFN_inner.h5
 ln -sf ../2-wfn_co/WFN.h5 WFN_outer.h5
@@ -71,11 +71,8 @@ srun sigma.cplx.x > sigma.out
 cd ../
 echo "Step 6 (Sigma) done at $(date)"
 
-# Step 7: Wavefunction projections for GNN preprocessing
-# (run from the 2-wfn_co directory so projwfc.x finds the wavefunction files)
-cd 2-wfn_co/
-srun -n 1 projwfc.x < projwfc.in > projwfc.out
-cd ../
-echo "Step 7 (projwfc) done at $(date)"
-
 echo "Job finished at $(date)"
+echo "Outputs for GNN preprocessing:"
+echo "  2-wfn_co/mos2.save/atomic_proj.xml"
+echo "  2-wfn_co/projwfc.out"
+echo "  6-sigma/eqp.dat"

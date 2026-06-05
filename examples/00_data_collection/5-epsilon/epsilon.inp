@@ -4,8 +4,8 @@ epsilon_cutoff 10.0
 cell_slab_truncation
 degeneracy_check_override
 
-! Full 6x6x1 q-point grid (36 points, no symmetry reduction)
-! Gamma is shifted slightly (0.001) for numerical stability
+! Full 6x6x1 q-point grid (36 points)
+! Gamma is shifted by 0.001 along k1 for numerical stability (optical limit)
 begin qpoints
 0.001       0.000       0.000   1.0  1
 0.00000000  0.16666667  0.000   1.0  0

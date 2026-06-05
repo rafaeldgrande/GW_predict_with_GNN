@@ -4,6 +4,6 @@
    lsym            = .true.
    lwrite_overlaps = .true.
 /
-! Outputs:
+! Outputs (written to mos2.save/):
 !   atomic_proj.xml  -> read by pre_proc/get_proj_for_graphs_and_eqp.py
 !   projwfc.out      -> read by pre_proc/map_orbitals_atoms.py

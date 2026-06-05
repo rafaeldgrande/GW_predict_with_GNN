@@ -1,5 +1,5 @@
 &CONTROL
-   calculation      = 'bands'
+   calculation      = 'scf'
    verbosity        = 'high'
    tstress          = .true.
    tprnfor          = .true.
@@ -33,13 +33,15 @@ CELL_PARAMETERS angstrom
 -1.56016539500000  2.70228573300000  0.00000000000000
  0.00000000000000  0.00000000000000 25.00000000000000
 
-! Must match the atomic positions of the corresponding scf.in (same replica)
+! NOTE: atomic positions differ for each replica (thermal displacements).
+! The positions below correspond to replica_000.
+! Use generate_QE_inputs.py to produce scf.in for each new replica.
 ATOMIC_POSITIONS angstrom
 Mo  0.0496714153 -0.0138264301  0.0647688538
 S   0.1523029856  1.7781084829  1.5299509095
 S   0.1579212816  1.8782672933 -1.6003120438
 
-! Same full 6x6x1 k-grid as SCF
+! Full 6x6x1 k-grid (36 explicit k-points, no symmetry reduction)
 K_POINTS crystal
 36
 0.00000000  0.00000000  0.00000000  1.0
