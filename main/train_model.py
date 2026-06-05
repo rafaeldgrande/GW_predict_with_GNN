@@ -254,7 +254,7 @@ if __name__ == '__main__':
         params_NN = load_params_NN(model_name)
         logger.info(f"Model parameters loaded: {params_NN}")
         mlflow.log_params(params_NN)
-        model = create_gnn_model_from_params(params_NN, input_dim)
+        model = create_gnn_model_from_params_variable_dims(params_NN, input_dim)
         logger.info(f"Model created with input dimension: {input_dim}")
         
         # Create optimizer and loss function
