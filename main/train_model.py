@@ -16,6 +16,7 @@ import logging
 import os
 import time
 from datetime import datetime, timedelta
+import mlflow
 
 # Configure logging
 def setup_logging(log_level=logging.INFO):
@@ -129,6 +130,13 @@ def train_model_with_patience(model, train_loader, val_loader, optimizer, loss_f
         # Log epoch details
         logger.info(f"Epoch {epoch:03d}/{epochs} | Train Loss: {avg_train_loss:.4f} | Train MAE: {avg_train_mae:.4f} | Val Loss: {avg_val_loss:.4f} | Val MAE: {avg_val_mae:.4f} | patience_counter {patience_counter} | Current LR: {current_lr:.2e}")
         print(f"Epoch {epoch:03d} of {epochs} | Train Loss: {avg_train_loss:.4f} | Train MAE: {avg_train_mae:.4f} | Val Loss: {avg_val_loss:.4f} | Val MAE: {avg_val_mae:.4f} | patience_counter {patience_counter} | Current LR: {current_lr:.2e}")
+        mlflow.log_metrics({
+            'train_loss': avg_train_loss,
+            'train_mae': avg_train_mae,
+            'val_loss': avg_val_loss,
+            'val_mae': avg_val_mae,
+            'learning_rate': current_lr,
+        }, step=epoch)
 
         if avg_val_mae < best_val_mae:
             best_val_mae = avg_val_mae
@@ -167,7 +175,9 @@ if __name__ == '__main__':
     parser.add_argument('--output_weights_file', type=str, default='out_weights.pth', help='Output weights file')
     parser.add_argument('--split_train', type=float, default=0.8, help="Fraction of the data that will be used to train model. The rest will be used in evaluation and development (50%, 50%)")
     parser.add_argument('--log_level', type=str, default='INFO', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'], help='Logging level')
-    
+    parser.add_argument('--mlflow_experiment_name', type=str, default='GNN_GW_corrections', help='MLflow experiment name')
+    parser.add_argument('--mlflow_tracking_uri', type=str, default='sqlite:///mlflow.db', help='MLflow tracking URI. Use sqlite:///mlflow.db for local runs or sqlite:////absolute/path/mlflow.db for a shared db.')
+
     args = parser.parse_args()
 
     # Update logger level if specified
@@ -202,26 +212,48 @@ if __name__ == '__main__':
     set_seed(seed)
     logger.info(f"Random seed set to: {seed}")
     
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
     print(f"Using device: {device}")
     print(f"Log file: {log_file}")
     logger.info(f"Using device: {device}")
+
+    mlflow.set_tracking_uri(args.mlflow_tracking_uri)
+    mlflow.set_experiment(args.mlflow_experiment_name)
+    mlflow.start_run()
+    mlflow.log_params({
+        'epochs': epochs_train_model,
+        'batch_size': batch_size,
+        'seed': seed,
+        'split_train': split_train,
+        'patience_training': patience_training,
+        'patience_learning_rate': patience_learning_rate,
+        'model_file': model_name,
+        'data_file': file_list_data,
+        'output_weights_file': output_weights_file,
+    })
 
     try:
         # Load dataset
         logger.info(f"Loading dataset from: {file_list_data}")
         dataset, input_dim = load_dataset(file_list_data)
         logger.info(f"Dataset loaded - Size: {len(dataset)}, Input dimension: {input_dim}")
-        
+        mlflow.log_params({'dataset_size': len(dataset), 'input_dim': input_dim})
+
         # Split dataset
         logger.info(f"Splitting dataset - Train ratio: {split_train}, Batch size: {batch_size}")
         train_loader, dev_loader, val_loader = split_data_set(dataset, batch_size, split_ratio=split_train)
         logger.info(f"Data split completed - Train batches: {len(train_loader)}, Dev batches: {len(dev_loader)}, Val batches: {len(val_loader)}")
-        
+
         # Load model config and initialize
         logger.info(f"Loading model configuration from: {model_name}")
         params_NN = load_params_NN(model_name)
         logger.info(f"Model parameters loaded: {params_NN}")
+        mlflow.log_params(params_NN)
         model = create_gnn_model_from_params(params_NN, input_dim)
         logger.info(f"Model created with input dimension: {input_dim}")
         
@@ -267,11 +299,20 @@ if __name__ == '__main__':
         logger.info(f"  - MAE: {final_mae:.6f}")
         logger.info(f"  - MSE: {final_mse:.6f}")
         logger.info(f"  - RMSE: {final_rmse:.6f}")
-        
+
         print(f"Final evaluation metrics:")
         print(f"  MAE: {final_mae:.6f}")
         print(f"  MSE: {final_mse:.6f}")
         print(f"  RMSE: {final_rmse:.6f}")
+
+        mlflow.log_metrics({
+            'best_val_mae': best_val_mae,
+            'best_epoch': best_epoch,
+            'final_mae': final_mae,
+            'final_mse': final_mse,
+            'final_rmse': final_rmse,
+        })
+        mlflow.log_artifact(output_weights_file)
         
         if plot_data:
             logger.info("Generating training plots")
@@ -283,6 +324,9 @@ if __name__ == '__main__':
             except Exception as e:
                 logger.error(f"Failed to generate plots: {str(e)}")
                 print(f"Failed to generate plots: {str(e)}")
+            for artifact in ['loss_mae.png', 'pred_vs_true_qp.png']:
+                if os.path.exists(artifact):
+                    mlflow.log_artifact(artifact)
         
         # Calculate total duration
         total_duration = time.time() - start_time
@@ -304,8 +348,11 @@ if __name__ == '__main__':
         logger.error(f"Training failed after {total_duration:.2f}s: {str(e)}")
         logger.error(f"Arguments used: {vars(args)}")
         print(f"Training failed: {str(e)}")
+        mlflow.set_tag('status', 'FAILED')
+        mlflow.end_run(status='FAILED')
         raise e
-    
+
+    mlflow.end_run()
     logger.info("=" * 60)
     logger.info("SCRIPT COMPLETED")
     logger.info("=" * 60)

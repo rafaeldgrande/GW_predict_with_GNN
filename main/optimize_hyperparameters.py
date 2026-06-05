@@ -14,6 +14,7 @@ import optuna.visualization as vis
 from torch_geometric.loader import DataLoader
 import time
 from datetime import datetime, timedelta
+import mlflow
 
 # Configure logging
 def setup_logging(log_level=logging.INFO):
@@ -231,6 +232,7 @@ def objective(trial):
         trial_duration = time.time() - trial_start_time
         
         logger.info(f"Trial {trial.number + 1} completed successfully - MAE: {final_mae:.6f}, Duration: {trial_duration:.1f}s")
+        mlflow.log_metric('trial_mae', final_mae, step=trial.number)
         return final_mae
         
     except Exception as e:
@@ -266,7 +268,9 @@ if __name__ == '__main__':
     parser.add_argument('--mlp_hidden_min', type=int, default=64, help='Minimum hidden units for MLP layer')
     parser.add_argument('--mlp_hidden_max', type=int, default=256, help='Maximum hidden units for MLP layer')
     parser.add_argument('--log_level', type=str, default='INFO', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'], help='Logging level')
-    
+    parser.add_argument('--mlflow_experiment_name', type=str, default='GNN_GW_hypersearch', help='MLflow experiment name')
+    parser.add_argument('--mlflow_tracking_uri', type=str, default='sqlite:///mlflow.db', help='MLflow tracking URI. Use sqlite:///mlflow.db for local runs or sqlite:////absolute/path/mlflow.db for a shared db.')
+
     args = parser.parse_args()
     
     # Update logger level if specified
@@ -301,11 +305,40 @@ if __name__ == '__main__':
     mlp_hidden_min = args.mlp_hidden_min
     mlp_hidden_max = args.mlp_hidden_max
     
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # print if using GPU or CPU
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
     print(f"Using device: {device}")
     logger.info(f"Using device: {device}")
-    
+
+    mlflow.set_tracking_uri(args.mlflow_tracking_uri)
+    mlflow.set_experiment(args.mlflow_experiment_name)
+    run_name = f"study_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    mlflow.start_run(run_name=run_name)
+    mlflow.log_params({
+        'n_trials': n_trials_Bayesian_optimization,
+        'epochs_per_trial': total_epochs_trial,
+        'use_angles': use_angles,
+        'use_distances': use_distances,
+        'n_layers_min': n_layers_min,
+        'n_layers_max': n_layers_max,
+        'hidden_dims_min': hidden_dims_min,
+        'hidden_dims_max': hidden_dims_max,
+        'hidden_dims_step': hidden_dims_step,
+        'dropout_rate_min': dropout_rate_min,
+        'dropout_rate_max': dropout_rate_max,
+        'lr_min': lr_min,
+        'lr_max': lr_max,
+        'mlp_hidden_min': mlp_hidden_min,
+        'mlp_hidden_max': mlp_hidden_max,
+        'batch_size': batch_size,
+        'seed': seed,
+        'data_file': file_list_data,
+    })
+
     # load data
     logger.info(f"Loading dataset from: {file_list_data}")
     dataset, input_dim = load_dataset(file_list_data)
@@ -382,7 +415,12 @@ if __name__ == '__main__':
     logger.info("Saving best hyperparameters to best_params.json")
     with open("best_params.json", "w") as f:
         json.dump(study.best_trial.params, f, indent=4)
-    
+
+    mlflow.log_metric('best_mae', study.best_value)
+    mlflow.log_param('best_trial_number', study.best_trial.number)
+    mlflow.log_params({f'best_{k}': v for k, v in study.best_trial.params.items()})
+    mlflow.log_artifact('best_params.json')
+
     # Generate and save visualization plots
     try:
         logger.info("Generating optimization plots")
@@ -393,13 +431,16 @@ if __name__ == '__main__':
         fig1.write_html("optimization_history.html")
         fig2.write_html("param_importances.html")
         fig3.write_html("hyperparameter_slices.html")
-        
+
         logger.info("Plots saved: optimization_history.html, param_importances.html, hyperparameter_slices.html")
         print("Plots saved: optimization_history.html, param_importances.html, hyperparameter_slices.html")
+        for html_file in ['optimization_history.html', 'param_importances.html', 'hyperparameter_slices.html']:
+            mlflow.log_artifact(html_file)
     except Exception as e:
         logger.error(f"Failed to generate plots: {str(e)}")
         print(f"Failed to generate plots: {str(e)}")
-    
+
+    mlflow.end_run()
     logger.info("=" * 60)
     logger.info("SCRIPT COMPLETED SUCCESSFULLY")
     logger.info("=" * 60)
