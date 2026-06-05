@@ -139,7 +139,14 @@ def objective(trial):
         float: The mean absolute error (MAE) of the model on the validation set.
     """
     
-    logger.info(f"Starting trial {trial.number + 1}")
+    completed = [t for t in trial.study.trials if t.state == optuna.trial.TrialState.COMPLETE]
+    if completed:
+        avg_s = sum(t.duration.total_seconds() for t in completed if t.duration) / len(completed)
+        remaining_s = avg_s * (n_trials_Bayesian_optimization - trial.number)
+        eta_str = str(timedelta(seconds=int(remaining_s)))
+    else:
+        eta_str = "N/A"
+    logger.info(f"Starting trial {trial.number + 1} / {n_trials_Bayesian_optimization}")
     trial_start_time = time.time()
 
     try:
@@ -189,7 +196,7 @@ def objective(trial):
         loss_fn   = nn.MSELoss()
 
         # Training loop
-        logger.info(f"Starting training for trial {trial.number + 1} with {total_epochs_trial} epochs")
+        logger.info(f"Starting training for trial {trial.number + 1} / {n_trials_Bayesian_optimization} with {total_epochs_trial} epochs. Estimated remaining time: {eta_str}")
         
         pre_avg_loss = 0.0
         for epoch in range(total_epochs_trial):
