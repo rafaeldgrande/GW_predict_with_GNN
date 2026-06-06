@@ -1,5 +1,7 @@
 # GW Quasiparticle Corrections with Graph Neural Networks
 
+[![tests](https://github.com/rafaeldgrande/GW_predict_with_GNN/actions/workflows/tests.yml/badge.svg)](https://github.com/rafaeldgrande/GW_predict_with_GNN/actions/workflows/tests.yml)
+
 A machine-learning framework for predicting GW quasiparticle (QP) energy corrections from DFT calculations using Graph Neural Networks (GNNs).
 
 ---
