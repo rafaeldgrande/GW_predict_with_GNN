@@ -23,3 +23,10 @@ log_*
 
 # Hyperparameter search outputs
 best_params.json
+
+# MLflow
+mlflow.db
+mlruns/
+
+# Prediction / GNN output files
+eqp_from_GNN.dat
