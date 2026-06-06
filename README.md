@@ -294,11 +294,26 @@ Training and prediction logs are written to `logs/` with timestamps.
 - [PyTorch Geometric](https://pytorch-geometric.readthedocs.io/)
 - [ASE](https://wiki.fysik.dtu.dk/ase/) (Atomic Simulation Environment)
 - [Optuna](https://optuna.org) (hyperparameter optimization)
-- NumPy, h5py, matplotlib
+- [MLflow](https://mlflow.org) (experiment tracking)
+- NumPy, SciPy, h5py, matplotlib, plotly
 
-Install in the `py311env` conda environment:
+### Installation
+
+The recommended way is to create the conda environment from `environment.yml`:
 
 ```bash
-conda activate py311env
-pip install torch torch_geometric optuna h5py ase matplotlib
+conda env create -f environment.yml
+conda activate gnn_gw_env
+```
+
+`environment.yml` pins all package versions for reproducibility. It contains
+three commented PyTorch install lines — the NVIDIA GPU (CUDA 12.x) line is
+active by default. On a CPU-only machine or on macOS (Apple Silicon / MPS),
+edit the file to comment out the GPU line and uncomment the appropriate one
+before creating the environment.
+
+Alternatively, install manually into an existing environment:
+
+```bash
+pip install torch torch_geometric optuna mlflow h5py ase numpy scipy matplotlib plotly
 ```

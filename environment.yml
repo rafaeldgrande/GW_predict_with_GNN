@@ -1,0 +1,22 @@
+name: gnn_gw_env
+channels:
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+    # PyTorch — choose ONE of the lines below depending on your hardware:
+    - torch==2.11.0 --index-url https://download.pytorch.org/whl/cu124   # NVIDIA GPU (CUDA 12.x)
+    # - torch==2.11.0 --index-url https://download.pytorch.org/whl/cpu   # CPU only
+    # - torch==2.11.0                                                      # macOS (MPS via default wheel)
+    - torchvision
+    - torchaudio
+    - torch_geometric==2.7.0
+    - optuna==4.4.0
+    - mlflow==3.13.0
+    - h5py==3.14.0
+    - ase==3.25.0
+    - numpy==1.26.0
+    - scipy==1.16.0
+    - matplotlib==3.9.2
+    - plotly==6.2.0
