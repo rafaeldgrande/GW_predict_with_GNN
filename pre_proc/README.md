@@ -28,13 +28,13 @@ python map_orbitals_atoms.py -projwfc_output projwfc.out
 
 ## Step 2 — `get_proj_for_graphs_and_eqp.py`
 
-Reads the wavefunction projections (`atomic_proj.xml`), the GW quasiparticle energies (`eqp.dat`), the orbital mapping from Step 1, and the QE input file for geometry. Merges everything into a single HDF5 file ready for the GNN.
+Reads the wavefunction projections (`atomic_proj.xml`), the GW quasiparticle energies (`eqp1.dat`, the full QP solution from BerkeleyGW sigma), the orbital mapping from Step 1, and the QE input file for geometry. Merges everything into a single HDF5 file ready for the GNN.
 
 ### Usage
 
 ```bash
 python get_proj_for_graphs_and_eqp.py \
-    -eqp eqp.dat \
+    -eqp eqp1.dat \
     -Nval <valence_band_index> \
     -proj_file atomic_proj.xml \
     -orbital_mapping_file orbital_mapping.txt \
@@ -46,8 +46,8 @@ python get_proj_for_graphs_and_eqp.py \
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `-eqp` / `--eqp_file` | `eqp.dat` | QP energy file from BerkeleyGW sigma step |
-| `-Nval` / `--Nval` | `0` | Band index of the top valence band (used to set the energy zero). Must match the band numbering in `eqp.dat` |
+| `-eqp` / `--eqp_file` | `eqp.dat` | QP energy file from BerkeleyGW sigma step. Use `eqp1.dat` (full QP solution) rather than `eqp.dat` (linearized). |
+| `-Nval` / `--Nval` | `0` | Band index of the top valence band (used to set the energy zero). Must match the band numbering in the eqp file. |
 | `-proj_file` / `--proj_file` | `atomic_proj.xml` | Wavefunction projection file from `projwfc.x` |
 | `-orbital_mapping_file` / `--orbital_mapping_file` | `orbital_mapping.txt` | Output of `map_orbitals_atoms.py` |
 | `-qe_input_file` / `--qe_input_file` | `qe.in` | Quantum ESPRESSO input file (used to read atomic positions and lattice vectors) |

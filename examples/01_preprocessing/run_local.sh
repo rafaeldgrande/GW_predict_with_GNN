@@ -1,6 +1,6 @@
 #!/bin/bash
 # Preprocessing: convert QE + BGW outputs into an HDF5 dataset for the GNN
-# Run from the directory that contains atomic_proj.xml, projwfc.out, eqp.dat, qe.in
+# Run from the directory that contains atomic_proj.xml, projwfc.out, eqp1.dat, qe.in
 
 set -e
 
@@ -12,9 +12,9 @@ python $PREDIR/map_orbitals_atoms.py \
 # Output: orbital_mapping.txt
 
 # Step 2: Build HDF5 dataset
-#   -Nval: band index of top valence band (check your eqp.dat)
+#   -Nval: band index of top valence band (check your eqp1.dat)
 python $PREDIR/get_proj_for_graphs_and_eqp.py \
-    -eqp eqp.dat \
+    -eqp eqp1.dat \
     -Nval 13 \
     -proj_file atomic_proj.xml \
     -orbital_mapping_file orbital_mapping.txt \

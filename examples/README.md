@@ -76,7 +76,7 @@ epsilon.x < 00_data_collection/epsilon.inp > epsilon.out
 
 # Self-energy and QP corrections
 sigma.x < 00_data_collection/sigma.inp > sigma.out
-# Output: eqp.dat  (columns: k-index, band-index, E_DFT, E_QP in eV)
+# Outputs: eqp1.dat (full QP solution) and eqp.dat (linearized)
 ```
 
 ### 0c. SLURM submission
@@ -92,7 +92,7 @@ sbatch 00_data_collection/job.sub
 Convert the QE + BerkeleyGW outputs into an HDF5 file for the GNN.
 
 ```bash
-# From the directory containing atomic_proj.xml, projwfc.out, eqp.dat, qe.in:
+# From the directory containing atomic_proj.xml, projwfc.out, eqp1.dat, qe.in:
 
 # 1a. Build orbital mapping (collapses symmetry-equivalent orbitals)
 python ../pre_proc/map_orbitals_atoms.py \
@@ -101,7 +101,7 @@ python ../pre_proc/map_orbitals_atoms.py \
 
 # 1b. Build HDF5 dataset
 python ../pre_proc/get_proj_for_graphs_and_eqp.py \
-    -eqp eqp.dat \
+    -eqp eqp1.dat \
     -Nval 13 \
     -proj_file atomic_proj.xml \
     -orbital_mapping_file orbital_mapping.txt \
@@ -273,7 +273,8 @@ examples/
 │   ├── loss_mae.png                 ← training curves
 │   └── pred_vs_true_qp.png          ← parity plot
 ├── data/
-│   ├── data_for_GNN.h5_0 … h5_25   ← 36 MoS2 thermal snapshots
+│   ├── data_for_GNN.h5_0 … h5_9    ← single-digit indices
+│   ├── data_for_GNN.h5_00 … h5_25  ← zero-padded indices (36 snapshots total)
 │   ├── data_list.txt                ← all 36 files (full training)
 │   └── data_list_opt_study.txt      ← 1 file (hyperparameter search)
 ├── 00_data_collection/

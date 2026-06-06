@@ -199,7 +199,7 @@ Produced by `get_proj_for_graphs_and_eqp.py`:
 Perform:
 1. SCF + bands calculation with Quantum ESPRESSO (`pw.x`)
 2. Wavefunction projections with `projwfc.x` → `atomic_proj.xml` and `projwfc.out`
-3. GW calculation with BerkeleyGW → `eqp.dat`
+3. GW calculation with BerkeleyGW → `eqp1.dat` (full QP solution)
 
 ### Step 1: Build orbital mapping
 
@@ -214,7 +214,7 @@ python pre_proc/map_orbitals_atoms.py -projwfc_output projwfc.out
 
 ```bash
 python pre_proc/get_proj_for_graphs_and_eqp.py \
-    -eqp eqp.dat \
+    -eqp eqp1.dat \
     -Nval <valence_band_index> \
     -proj_file atomic_proj.xml \
     -orbital_mapping_file orbital_mapping.txt \
@@ -234,6 +234,7 @@ Create a `data_list.txt` file listing all HDF5 files (one per line):
 cd main/
 python optimize_hyperparameters.py \
     --file_list_data ../data_list.txt \
+    --use_angles --use_distances \
     --n_trials_Bayesian_optimization 50 \
     --total_epochs_trial 30 \
     --n_layers_min 2 --n_layers_max 4 \

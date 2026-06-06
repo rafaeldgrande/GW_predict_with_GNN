@@ -70,7 +70,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size for evaluation')
     parser.add_argument('--model', type=str, default='default_GNN.json', help='Model configuration file')
     parser.add_argument('--weights_file', type=str, default='best_model.pth', help='File containing the model weights')
-    parser.add_argument('--predictions_file', type=str, default='predictions.npy', help='File to save predictions')
+    parser.add_argument('--predictions_file', type=str, default='predictions.npz', help='File to save predictions (always written as .npz with y_pred and y_true keys)')
     parser.add_argument('--plot_data', action='store_true', help='Plot predictions vs true values')
     parser.add_argument('--log_level', type=str, default='INFO', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'], help='Logging level')
     
@@ -134,7 +134,7 @@ if __name__ == '__main__':
         params_NN = load_params_NN(model_name)
         logger.info(f"Model parameters loaded: {params_NN}")
         
-        model = create_gnn_model_from_params(params_NN, input_dim)
+        model = create_gnn_model_from_params_variable_dims(params_NN, input_dim)
         logger.info(f"Model created with input dimension: {input_dim}")
         
         print(f"Model loaded from {model_name}")

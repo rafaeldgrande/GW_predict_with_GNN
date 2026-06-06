@@ -8,7 +8,7 @@ Automated tests for the three main scripts. Tests use a small pre-built HDF5 dat
 
 ```bash
 cd tests/
-pytest test_train_model.py test_optimize_hyperparameters.py test_predictions.py -v
+pytest test_train_model.py test_predictions.py test_optimize_hyperparameters.py -v
 ```
 
 Or run all at once with the provided script:

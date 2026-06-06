@@ -158,7 +158,7 @@ python predict.py \
 | `--model` | `default_GNN.json` | JSON file with model hyperparameters |
 | `--weights_file` | `best_model.pth` | Trained model weights |
 | `--file_list_data` | `data_list.txt` | Text file listing HDF5 data files to run inference on |
-| `--predictions_file` | `predictions.npy` | Output file for predictions (saved as `.npz` with `y_pred` and `y_true` keys) |
+| `--predictions_file` | `predictions.npz` | Output file for predictions (always written as `.npz` with `y_pred` and `y_true` keys) |
 | `--batch_size` | `32` | Batch size for inference |
 | `--seed` | `42` | Random seed |
 | `--plot_data` | `False` | If set, saves `pred_vs_true_qp.png` |
