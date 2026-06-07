@@ -294,7 +294,7 @@ Training and prediction logs are written to `logs/` with timestamps.
 
 ## Results
 
-Those are results for predicting the GW corrections for monolayer MoS₂. Here we reduced a typical MAE of 181 meV from scissor operators to 21 meV with our GNN. More details can be found here: [`results_MoS2_pristine.ipynb`](https://nbviewer.org/github/rafaeldgrande/GW_predict_with_GNN/blob/main/results/results_MoS2_pristine.ipynb). (it takes some time to be loaded)
+Those are results for predicting the GW corrections for monolayer MoS₂. Here we reduced a typical MAE of 181 meV from scissor operators to 24 meV with our GNN. More details can be found here: [`results_MoS2_pristine.ipynb`](https://nbviewer.org/github/rafaeldgrande/GW_predict_with_GNN/blob/main/results/results_MoS2_pristine.ipynb). (it takes some time to be loaded)
 
 ![GNN vs scissor operator — predicted vs true ΔE](results/Delta_E_predicted_GNN_vs_scissor.png)
 
