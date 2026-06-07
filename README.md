@@ -4,7 +4,9 @@
 
 A machine-learning framework for predicting GW quasiparticle (QP) energy corrections from DFT calculations using Graph Neural Networks (GNNs).
 
-> **Preliminary results** for GNN applications to monolayer MoS2 can be visualized here [`results_MoS2_pristine.ipynb`](https://nbviewer.org/github/rafaeldgrande/GW_predict_with_GNN/blob/main/results/results_MoS2_pristine.ipynb). (it takes some time to be loaded)
+> **Preliminary results** for GNN applications to monolayer MoS₂ can be visualized here [`results_MoS2_pristine.ipynb`](https://nbviewer.org/github/rafaeldgrande/GW_predict_with_GNN/blob/main/results/results_MoS2_pristine.ipynb). (it takes some time to be loaded)
+
+
 
 ---
 
@@ -17,7 +19,8 @@ A machine-learning framework for predicting GW quasiparticle (QP) energy correct
 5. [Project Structure](#project-structure)
 6. [Workflow](#workflow)
 7. [Usage](#usage)
-8. [Dependencies](#dependencies)
+8. [Results](#results)
+9. [Dependencies](#dependencies)
 
 ---
 
@@ -288,6 +291,12 @@ python predict.py --help
 ```
 
 Training and prediction logs are written to `logs/` with timestamps.
+
+## Results
+
+Those are results for predicting the GW corrections for monolayer MoS₂. Here we reduced a typical MAE of 181 meV from scissor operators to 21 meV with our GNN. More details can be found here: [`results_MoS2_pristine.ipynb`](https://nbviewer.org/github/rafaeldgrande/GW_predict_with_GNN/blob/main/results/results_MoS2_pristine.ipynb). (it takes some time to be loaded)
+
+![GNN vs scissor operator — predicted vs true ΔE](results/Delta_E_predicted_GNN_vs_scissor.png)
 
 ---
 
