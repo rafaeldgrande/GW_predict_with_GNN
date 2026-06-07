@@ -4,7 +4,7 @@
 
 A machine-learning framework for predicting GW quasiparticle (QP) energy corrections from DFT calculations using Graph Neural Networks (GNNs).
 
-> **Preliminary results** are documented in [`GNN_GW_preliminar_report.ipynb`](GNN_GW_preliminar_report.ipynb).
+> **Preliminary results** for GNN applications to monolayer MoS2 can be visualized here [`results_MoS2_pristine.ipynb`](https://nbviewer.org/github/rafaeldgrande/GW_predict_with_GNN/blob/main/results/results_MoS2_pristine.ipynb). (it takes some time to be loaded)
 
 ---
 
