@@ -502,7 +502,12 @@ def create_gnn_model_from_params_variable_dims(params, input_dim):
     n_layers = params["n_layers"]
     dropout_rate = params["dropout_rate"]
     mlp_hidden_dim = params.get("mlp_hidden_dim", 64)
-    
+    # Feature flags: default to True for backward compatibility. Read from the
+    # params dict so the same JSON config selects the model variant
+    # (no-geometry / dist-only / dist+angles).
+    use_distances = params.get("use_distances", True)
+    use_angles = params.get("use_angles", True)
+
     # Extract layer-specific dimensions
     hidden_dims = []
     for i in range(n_layers):
@@ -518,8 +523,8 @@ def create_gnn_model_from_params_variable_dims(params, input_dim):
         hidden_dims=hidden_dims,
         activation="relu",
         dropout_rate=dropout_rate,
-        use_distances=True,
-        use_angles=True,
+        use_distances=use_distances,
+        use_angles=use_angles,
         mlp_hidden_dim=mlp_hidden_dim
     )
 

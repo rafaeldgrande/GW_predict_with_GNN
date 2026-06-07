@@ -177,6 +177,7 @@ if __name__ == '__main__':
     parser.add_argument('--log_level', type=str, default='INFO', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'], help='Logging level')
     parser.add_argument('--mlflow_experiment_name', type=str, default='GNN_GW_corrections', help='MLflow experiment name')
     parser.add_argument('--mlflow_tracking_uri', type=str, default='sqlite:///mlflow.db', help='MLflow tracking URI. Use sqlite:///mlflow.db for local runs or sqlite:////absolute/path/mlflow.db for a shared db.')
+    parser.add_argument('--run_description', type=str, default='', help='Free-text note attached to this MLflow run (stored as a tag)')
 
     args = parser.parse_args()
 
@@ -225,6 +226,8 @@ if __name__ == '__main__':
     mlflow.set_tracking_uri(args.mlflow_tracking_uri)
     mlflow.set_experiment(args.mlflow_experiment_name)
     mlflow.start_run()
+    if args.run_description:
+        mlflow.set_tag('description', args.run_description)
     mlflow.log_params({
         'epochs': epochs_train_model,
         'batch_size': batch_size,
