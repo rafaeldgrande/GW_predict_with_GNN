@@ -4,6 +4,8 @@
 
 A machine-learning framework for predicting GW quasiparticle (QP) energy corrections from DFT calculations using Graph Neural Networks (GNNs).
 
+> **Preliminary results** are documented in [`GNN_GW_preliminar_report.ipynb`](GNN_GW_preliminar_report.ipynb).
+
 ---
 
 ## Table of Contents
