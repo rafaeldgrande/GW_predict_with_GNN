@@ -201,7 +201,7 @@ def build_edge_index_with_pbc(positions, lattice, cutoff=3.0, return_angles=Fals
     return edge_index, edge_dist, angle_index, angles
 
 
-def load_gnn_samples_from_h5(filename):
+def load_gnn_samples_from_h5(filename, cutoff=3.0):
     """
     Loads GNN samples from an HDF5 file and returns a list of Data objects.
 
@@ -217,7 +217,7 @@ def load_gnn_samples_from_h5(filename):
     edge index, edge attributes, angle index, angles, atomic positions, target value,
     and input value for a single sample.
     """
-    
+
     with h5py.File(filename, 'r') as f:
         projections = f['atom_orb_projections'][()]  # (Nk, Nb, Natoms, Norbs)
         Edft = f['Edft'][()]                         # (Nb, Nk)
@@ -231,7 +231,7 @@ def load_gnn_samples_from_h5(filename):
 
     # Move edge/angle computation OUTSIDE the loop!
     edge_index, edge_attr, angle_index, angles = build_edge_index_with_pbc(
-        positions, lattice, cutoff=3.0, return_angles=True
+        positions, lattice, cutoff=cutoff, return_angles=True
     )
     
     # print("edge_index shape:", edge_index.shape)
